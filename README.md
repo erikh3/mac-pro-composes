@@ -6,8 +6,12 @@ A collection of compose configs.
 
 ## Run everything
 
-```shell
-docker compose -f it-tools/compose.yaml up -d
+```zsh
+COMPOSE_STACKS=(homepage it-tools)
+
+for stack in $COMPOSE_STACKS; do
+    (cd $stack; docker compose up -d)
+done;
 ```
 
 ## Run individual composes
