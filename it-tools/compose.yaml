@@ -9,3 +9,9 @@ services:
       - 127.0.0.1:3003:80
     restart: unless-stopped
     network_mode: none
+    labels:
+      homepage.group: Tools
+      homepage.name: It-tools
+      homepage.icon: it-tools-light.svg # https://gethomepage.dev/configs/services/#icons
+      homepage.href: "http://localhost:3003/"
+      homepage.description: "Collection of tools for developers"
