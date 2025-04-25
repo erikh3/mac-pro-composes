@@ -12,4 +12,5 @@ docker compose -f it-tools/compose.yaml up -d
 
 ## Run individual composes
 
+- [homepage](homepage/README.md)
 - [it-tools](it-tools/README.md)
