@@ -1,0 +1,26 @@
+---
+name: homepage
+
+services:
+  dockerproxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:latest
+    environment:
+      - CONTAINERS=1 # Allow access to viewing containers
+      - IMAGES=1 # Allow access to viewing images
+      - POST=0 # Disallow any POST operations (effectively read-only)
+    # ports:
+    #   - 127.0.0.1:2375:2375 # used by homepage (no need to expose this to host)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Mounted as read-only
+    restart: unless-stopped
+
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    ports:
+      - 127.0.0.1:3000:3000
+    volumes:
+      - ./homepage/config:/app/config
+    environment:
+      PUID: 501 # check `id` on host
+      PGID: 20 # check `id` on host
+      HOMEPAGE_ALLOWED_HOSTS: "homepage,localhost:3000,127.0.0.1:3000" # gethomepage.dev/installation/#homepage_allowed_hosts
