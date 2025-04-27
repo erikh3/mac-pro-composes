@@ -1,17 +1,22 @@
 ---
-name: it-tools
+name: mac-pro-composes
 
 services:
   it-tools:
     image: corentinth/it-tools:latest
     container_name: it-tools
-    ports:
-      - 127.0.0.1:3003:80
+    ports: [
+      # 127.0.0.1:3003:80 # exposed though reverse proxy
+    ]
     restart: unless-stopped
-    network_mode: none
     labels:
       homepage.group: Tools
       homepage.name: It-tools
       homepage.icon: it-tools-light.svg # https://gethomepage.dev/configs/services/#icons
-      homepage.href: "http://localhost:3003/"
+      homepage.href: "https://it-tools.localhost/" # through nginx proxy
       homepage.description: "Collection of tools for developers"
+
+networks:
+  default:
+    external: true
+    name: mac-pro-composes  # shared network
