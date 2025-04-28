@@ -1,0 +1,89 @@
+---
+name: mac-pro-composes
+
+services:
+  obsidian:
+    # https://docs.linuxserver.io/images/docker-obsidian/
+    image: lscr.io/linuxserver/obsidian:latest
+    profiles:
+      - obsidian
+      - kasm
+    security_opt: [
+      seccomp:unconfined  # optional
+    ]
+    # https://github.com/linuxserver/docker-obsidian#optional-environment-variables
+    environment:
+      - &puid PUID=501  # check `id` on host, also used in put_obsidian.zsh
+      - &pgid PGID=20   # check `id` on host, also used in put_obsidian.zsh
+      - &tz TZ=Europe/Prague # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List
+      - FILE__CUSTOM_USER=/run/secrets/obsidian-basic-auth-user
+      - FILE__PASSWORD=/run/secrets/obsidian-basic-auth-password
+      - TITLE=Obsidian
+      - NO_DECOR
+      - NO_FULL
+    labels:
+      one.dify.obsidian.putscript: "true" # explicit label which helps put_obsidian.zsh script find this container
+      homepage.group: Tools
+      homepage.name: Obsidian
+      homepage.icon: obsidian.svg # https://gethomepage.dev/configs/services/#icons
+      homepage.href: "https://localhost:3101/"
+      homepage.description: "Personal knowledge data lake"
+    volumes:
+      - ./obsidian/config:/config
+      - &datamount syncthing-data:/config/data
+      # use with put_obsidian.zsh script to copy any files from host to obsidian vault
+      - ./obsidian/to-obsidian:/media/to-config-data
+    secrets:
+      - obsidian-basic-auth-user
+      - obsidian-basic-auth-password
+    # port configs must be pushed to network mode container (wireguard)
+    ports:
+      - 127.0.0.1:3101:3001 # https obsidian desktop GUI
+    shm_size: "1gb" # needed for electron applications to function properly
+    restart: &restartpolicy unless-stopped
+    depends_on:
+      - syncthing
+
+  syncthing:
+    # https://docs.linuxserver.io/images/docker-syncthing/
+    image: lscr.io/linuxserver/syncthing:latest
+    profiles:
+      - obsidian
+      - syncthing
+      - utils
+    environment:
+      - *puid
+      - *pgid
+      - *tz
+    labels:
+      homepage.group: Utils
+      homepage.name: Syncthing
+      homepage.icon: syncthing.svg # https://gethomepage.dev/configs/services/#icons
+      homepage.href: "https://syncthing.localhost/"
+      homepage.description: "Sync files between devices"
+    volumes:
+      - ./syncthing/config:/config
+      - *datamount
+    # port configs must be pushed to network mode container (wireguard)
+    ports: [
+      # 127.0.0.1:3002:8384 # http syncthing GUI (exposed through reverse proxy)
+      # disable discovery ports, this device won't be reachable directly
+      # 22000:22000/tcp # TCP based sync protocol traffic
+      # 22000:22000/udp # QUIC based sync protocol traffic
+      # 21027:21027/udp # discovery broadcasts on IPv4 and multicasts on IPv6
+    ]
+    restart: *restartpolicy
+
+volumes:
+  syncthing-data:
+
+networks:
+  default:
+    external: true
+    name: mac-pro-composes  # shared network
+
+secrets:
+  obsidian-basic-auth-user:
+    file: ~/.config/custom/linuxserver-obsidian/secrets/basic-auth-user
+  obsidian-basic-auth-password:
+    file: ~/.config/custom/linuxserver-obsidian/secrets/basic-auth-password
