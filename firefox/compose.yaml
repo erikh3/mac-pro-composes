@@ -1,0 +1,48 @@
+---
+name: mac-pro-composes
+
+services:
+  firefox:
+    # https://docs.linuxserver.io/images/docker-firefox/
+    image: lscr.io/linuxserver/firefox:latest
+    profiles:
+      - firefox
+      - kasm
+      - utils
+    security_opt: [
+      seccomp:unconfined  #optional
+    ]
+    environment:
+      PUID: 501  # check `id` on host
+      PGID: 20   # check `id` on host
+      TITLE: Firefox
+      TZ: Europe/Prague # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List
+      FILE__CUSTOM_USER: "/run/secrets/firefox-basic-auth-user"
+      FILE__PASSWORD: "/run/secrets/firefox-basic-auth-password"
+    volumes:
+      - ./firefox/config:/config
+    secrets:
+      - firefox-basic-auth-user
+      - firefox-basic-auth-password
+    ports:
+      - 127.0.0.1:3104:3001 # https firefox desktop GUI (direct access enabled)
+    shm_size: "2gb" # https://docs.linuxserver.io/images/docker-firefox/#miscellaneous-options
+    restart: unless-stopped
+    labels:
+      homepage.group: Utils
+      homepage.name: Firefox
+      homepage.icon: firefox.svg # https://gethomepage.dev/configs/services/#icons
+      # homepage.href: "https://firefox.localhost/" # through nginx proxy
+      homepage.href: "https://localhost:3104/" # direct access
+      homepage.description: "Firefox browser"
+
+networks:
+  default:
+    external: true
+    name: mac-pro-composes  # shared network
+
+secrets:
+  firefox-basic-auth-user:
+    file: ~/.config/custom/mac-pro-composes/firefox/secrets/basic-auth-user
+  firefox-basic-auth-password:
+    file: ~/.config/custom/mac-pro-composes/firefox/secrets/basic-auth-password

@@ -20,10 +20,25 @@ Add any custom hostnames to `/etc/hosts`.
 127.0.0.1	it-tools
 ```
 
+Create & set custom secrets
+
+```shell
+mkdir -p ~/.config/custom/mac-pro-composes/firefox/secrets
+cd $_
+touch basic-auth-password
+touch basic-auth-user
+```
+
 ## Run everything
 
+The optional services are using [compose profiles](https://docs.docker.com/compose/how-tos/profiles/) and
+containers won't be created unless at least one of their profiles is activated.
+
 ```zsh
-COMPOSE_STACKS=(nginx homepage it-tools)
+# pick & choose which ones you want
+export COMPOSE_PROFILES="it-tools,firefox"
+
+COMPOSE_STACKS=(nginx homepage it-tools firefox)
 DOCKER_CLI="docker"
 
 for stack in $COMPOSE_STACKS; do
