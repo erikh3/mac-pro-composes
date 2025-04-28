@@ -36,9 +36,9 @@ containers won't be created unless at least one of their profiles is activated.
 
 ```zsh
 # pick & choose which ones you want
-export COMPOSE_PROFILES="it-tools,firefox"
+export COMPOSE_PROFILES="it-tools,firefox,obsidian"
 
-COMPOSE_STACKS=(nginx homepage it-tools firefox)
+COMPOSE_STACKS=(nginx homepage it-tools firefox obsidian)
 DOCKER_CLI="docker"
 
 for stack in $COMPOSE_STACKS; do
