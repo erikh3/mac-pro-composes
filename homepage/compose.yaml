@@ -26,6 +26,7 @@ services:
       PUID: 501 # check `id` on host
       PGID: 20 # check `id` on host
       HOMEPAGE_ALLOWED_HOSTS: "*" # gethomepage.dev/installation/#homepage_allowed_hosts
+    restart: unless-stopped
 
 networks:
   default:
