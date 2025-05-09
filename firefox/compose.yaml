@@ -13,14 +13,17 @@ services:
       seccomp:unconfined  #optional
     ]
     environment:
+      # https://github.com/linuxserver/docker-firefox#optional-environment-variables
+      # https://github.com/linuxserver/docker-baseimage-kasmvnc?tab=readme-ov-file#options
       PUID: 501  # check `id` on host
       PGID: 20   # check `id` on host
       TITLE: Firefox
       TZ: Europe/Prague # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List
       FILE__CUSTOM_USER: "/run/secrets/firefox-basic-auth-user"
       FILE__PASSWORD: "/run/secrets/firefox-basic-auth-password"
-      NO_DECOR:
-      NO_FULL:
+      NO_DECOR: "true" # hides default window title bar, can be toggled with Ctrl+Shift+d
+      FM_HOME: "/config/Downloads"
+      START_DOCKER: "false"
     volumes:
       - ./firefox/config:/config
     secrets:

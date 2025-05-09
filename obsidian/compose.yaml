@@ -11,17 +11,17 @@ services:
     security_opt: [
       seccomp:unconfined  # optional
     ]
-    # https://github.com/linuxserver/docker-obsidian#optional-environment-variables
     environment:
+      # https://github.com/linuxserver/docker-obsidian#optional-environment-variables
+      # https://github.com/linuxserver/docker-baseimage-kasmvnc?tab=readme-ov-file#options
       PUID: &puid 501  # check `id` on host, also used in put_obsidian.zsh
       PGID: &pgid 20   # check `id` on host, also used in put_obsidian.zsh
       TZ: &tz Europe/Prague # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List
       FILE__CUSTOM_USER: /run/secrets/obsidian-basic-auth-user
       FILE__PASSWORD: /run/secrets/obsidian-basic-auth-password
-      TITLE: Personal Obsidian
+      TITLE: 👤🧠🗂️ Personal Obsidian
       FM_HOME: /config/Downloads
-      NO_DECOR:
-      NO_FULL:
+      START_DOCKER: "false"
     labels:
       one.dify.obsidian.putscript: "true" # explicit label which helps put_obsidian.zsh script find this container
       homepage.group: Tools
