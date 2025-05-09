@@ -94,6 +94,7 @@ docker exec -t $CONTAINER_ID bash -c "step ca certificate shared-localhost-stepc
    --san homepage.localhost \
    --san firefox.localhost \
    --san obsidian.localhost \
+   --san syncthing.localhost \
    --san it-tools.localhost \
    --not-after 40000h \
    $MOUNT_BASE_PATH/localhost.crt \
