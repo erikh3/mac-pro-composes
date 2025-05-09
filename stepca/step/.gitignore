@@ -1,0 +1,6 @@
+certs/
+secrets/
+db/
+config/
+.ash_history
+!.gitignore

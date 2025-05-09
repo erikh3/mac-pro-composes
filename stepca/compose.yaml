@@ -1,0 +1,37 @@
+---
+name: mac-pro-composes
+
+services:
+    stepca:
+        image: smallstep/step-ca:latest
+        environment:
+            DOCKER_STEPCA_INIT_NAME: mac-pro-composes-step-ca
+            DOCKER_STEPCA_DEPLOYMENT_TYPE: standalone
+            DOCKER_STEPCA_INIT_DNS_NAMES: localhost,step-ca.localhost,step-ca,127.0.0.1,host.docker.internal
+            DOCKER_STEPCA_INIT_PASSWORD_FILE: /run/secrets/ca-password
+            DOCKER_STEPCA_INIT_PROVISIONER_NAME: default-jwk
+            DOCKER_STEPCA_INIT_PROVISIONER_PASSWORD_FILE: /run/secrets/default-jwk-provisioner-password
+            DOCKER_STEPCA_INIT_ACME: "true"
+        labels:
+            one.dify.stepca: "true"
+        ports:
+            - 127.0.0.1:9000:9000 # after root cert is installed, port can be disabled
+        volumes:
+            - ./step:/home/step
+            - ./service-certs:/home/service-certs
+        secrets:
+            - ca-password
+            - default-jwk-provisioner-password
+        restart: unless-stopped
+
+networks:
+  default:
+    external: true
+    name: mac-pro-composes  # shared network
+
+secrets:
+    ca-password:
+        file: ~/.config/custom/step-ca/secrets/ca-password
+    default-jwk-provisioner-password:
+        file: ~/.config/custom/step-ca/secrets/default-jwk-password
+

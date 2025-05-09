@@ -1,4 +1,6 @@
+# stepca certificates
 
+Replace certificates from `service-certs` to `firefox/config/ssl`.
 
 # Tips
 
