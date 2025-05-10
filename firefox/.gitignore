@@ -1,3 +1,2 @@
-firefox/config/.*
+firefox/config/
 !firefox/config/.bashrc
-firefox/config/ssl/
