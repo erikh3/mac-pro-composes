@@ -24,8 +24,11 @@ services:
       NO_DECOR: "true" # hides default window title bar, can be toggled with Ctrl+Shift+d
       FM_HOME: "/config/Downloads"
       START_DOCKER: "false"
+      DOCKER_MODS: linuxserver/mods:universal-cron  # enables cron jobs from ./firefox/crontabs
     volumes:
       - ./firefox/config:/config
+      - ./firefox/crontabs:/config/crontabs:ro
+      - ./firefox/scripts:/config/scripts:ro
     secrets:
       - firefox-basic-auth-user
       - firefox-basic-auth-password
