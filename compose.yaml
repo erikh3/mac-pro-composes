@@ -1,0 +1,13 @@
+---
+include:
+  - nginx/compose.yaml
+  - stepca/compose.yaml
+  - homepage/compose.yaml
+  - it-tools/compose.yaml
+  - firefox/compose.yaml
+  - obsidian/compose.yaml
+
+networks:
+  default:
+    external: true
+    name: mac-pro-composes  # shared network

@@ -1,29 +1,24 @@
 ---
-name: mac-pro-composes
-
 services:
+  # https://docs.linuxserver.io/images/docker-firefox/
   firefox:
-    # https://docs.linuxserver.io/images/docker-firefox/
-    image: lscr.io/linuxserver/firefox:latest
+    image: ${FIREFOX_IMAGE:?firefox image}:${FIREFOX_TAG:-latest}
     profiles:
       - firefox
-      - kasm
-      - utils
     security_opt: [
-      seccomp:unconfined  #optional
+      seccomp:unconfined  # better compatibility with some hosts
     ]
     environment:
       # https://github.com/linuxserver/docker-firefox#optional-environment-variables
-      # https://github.com/linuxserver/docker-baseimage-kasmvnc?tab=readme-ov-file#options
-      PUID: 501  # check `id` on host
-      PGID: 20   # check `id` on host
-      TITLE: Firefox
-      TZ: Europe/Prague # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List
-      FILE__CUSTOM_USER: "/run/secrets/firefox-basic-auth-user"
-      FILE__PASSWORD: "/run/secrets/firefox-basic-auth-password"
-      NO_DECOR: "true" # hides default window title bar, can be toggled with Ctrl+Shift+d
-      FM_HOME: "/config/Downloads"
-      START_DOCKER: "false"
+      PUID: ${PUID:?user id}
+      PGID: ${PGID:?group id}
+      TZ: ${TZ:?timezone}
+      TITLE: ${TITLE}
+      NO_DECOR: ${NO_DECOR}
+      FM_HOME: ${FM_HOME}
+      START_DOCKER: ${START_DOCKER}
+      FILE__CUSTOM_USER: /run/secrets/firefox-basic-auth-user
+      FILE__PASSWORD: /run/secrets/firefox-basic-auth-password
       DOCKER_MODS: linuxserver/mods:universal-cron  # enables cron jobs from ./firefox/crontabs
     volumes:
       - ./firefox/config:/config
@@ -33,24 +28,19 @@ services:
       - firefox-basic-auth-user
       - firefox-basic-auth-password
     ports:
-      - 127.0.0.1:3104:3001 # https firefox desktop GUI (direct access enabled)
-    shm_size: "2gb" # https://docs.linuxserver.io/images/docker-firefox/#miscellaneous-options
-    restart: unless-stopped
+      - 127.0.0.1:${HOST_PORT:-3001}:3001 # https firefox desktop GUI (direct access enabled)
+    shm_size: ${SHM_SIZE:-1gb}
+    restart: ${RESTART}
     labels:
       homepage.group: Utils
-      homepage.name: Firefox
+      homepage.name: ${TITLE}
       homepage.icon: firefox.svg # https://gethomepage.dev/configs/services/#icons
       # homepage.href: "https://firefox.localhost/" # through nginx proxy
-      homepage.href: "https://localhost:3104/" # direct access
+      homepage.href: "https://localhost:${HOST_PORT:-3001}/" # direct access
       homepage.description: "Firefox browser"
-
-networks:
-  default:
-    external: true
-    name: mac-pro-composes  # shared network
 
 secrets:
   firefox-basic-auth-user:
-    file: ~/.config/custom/mac-pro-composes/firefox/secrets/basic-auth-user
+    file: ${FIREFOX_SECRETS_BASE_DIR}/basic-auth-user
   firefox-basic-auth-password:
-    file: ~/.config/custom/mac-pro-composes/firefox/secrets/basic-auth-password
+    file: ${FIREFOX_SECRETS_BASE_DIR}/basic-auth-password

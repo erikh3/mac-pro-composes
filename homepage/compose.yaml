@@ -1,34 +1,30 @@
 ---
-name: mac-pro-composes
-
 services:
+  # https://github.com/Tecnativa/docker-socket-proxy
   dockerproxy:
-    image: ghcr.io/tecnativa/docker-socket-proxy:latest
-    environment:
-      - CONTAINERS=1 # Allow access to viewing containers
-      - IMAGES=1 # Allow access to viewing images
-      - POST=0 # Disallow any POST operations (effectively read-only)
+    image: ${DOCKER_PROXY_IMAGE:?docker socket proxy}:${DOCKER_PROXY_TAG:-latest}
     ports: [
-      # 127.0.0.1:2375:2375 # used by homepage auto-discovery (no need to expose this to host)
+      # 127.0.0.1:2375:2375 # used by homepage auto-discovery (no need to expose to host)
     ]
+    environment:
+      CONTAINERS: 1 # Allow access to viewing containers
+      IMAGES: 1 # Allow access to viewing images
+      POST: 0 # Disallow any POST operations (effectively read-only)
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro # Mounted as read-only
-    restart: unless-stopped
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: ${RESTART}
 
+  # https://github.com/gethomepage/homepage
   homepage:
-    image: ghcr.io/gethomepage/homepage:latest
+    image: ${HOMEPAGE_IMAGE:?homepage image}:${HOMEPAGE_TAG:-latest}
     ports: [
       #  127.0.0.1:3000:3000  # exposed though reverse proxy
     ]
     volumes:
       - ./homepage/config:/app/config
     environment:
-      PUID: 501 # check `id` on host
-      PGID: 20 # check `id` on host
+      PUID: ${PUID:?user id} # check `id` on host
+      PGID: ${PGID:?group id} # check `id` on host
+      TZ: ${TZ:?timezone}
       HOMEPAGE_ALLOWED_HOSTS: "*" # gethomepage.dev/installation/#homepage_allowed_hosts
-    restart: unless-stopped
-
-networks:
-  default:
-    external: true
-    name: mac-pro-composes  # shared network
+    restart: ${RESTART}
