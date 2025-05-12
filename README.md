@@ -22,6 +22,8 @@ Add any custom hostnames to `/etc/hosts`.
 
 Create & set custom secrets
 
+E.g. for Firefox
+
 ```shell
 mkdir -p ~/.config/custom/mac-pro-composes/firefox/secrets
 cd $_
@@ -34,19 +36,8 @@ touch basic-auth-user
 The optional services are using [compose profiles](https://docs.docker.com/compose/how-tos/profiles/) and
 containers won't be created unless at least one of their profiles is activated.
 
-```zsh
-# pick & choose which ones you want
-export COMPOSE_PROFILES="it-tools,firefox,obsidian"
+The default profiles & other environment variables are pre-filled in `.env` file.
 
-COMPOSE_STACKS=(nginx homepage it-tools firefox obsidian)
-DOCKER_CLI="docker"
-
-for stack in $COMPOSE_STACKS; do
-    (cd $stack; $DOCKER_CLI compose up -d)
-done;
+```shell
+docker compose up -d
 ```
-
-## Run individual composes
-
-- [homepage](homepage/README.md)
-- [it-tools](it-tools/README.md)

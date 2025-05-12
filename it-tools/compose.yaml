@@ -1,25 +1,17 @@
 ---
-name: mac-pro-composes
-
 services:
+  # https://github.com/CorentinTh/it-tools
   it-tools:
-    image: corentinth/it-tools:latest
+    image: ${IMAGE:?it-tools image}:${TAG:-latest}
     profiles:
       - it-tools
-      - utils
-    container_name: it-tools
     ports: [
-      # 127.0.0.1:3003:80 # exposed though reverse proxy
+      # 127.0.0.1:80:80 # exposed though reverse proxy
     ]
-    restart: unless-stopped
+    restart: ${RESTART}
     labels:
       homepage.group: Tools
       homepage.name: It-tools
       homepage.icon: it-tools-light.svg # https://gethomepage.dev/configs/services/#icons
       homepage.href: "https://it-tools.localhost/" # through nginx proxy
       homepage.description: "Collection of tools for developers"
-
-networks:
-  default:
-    external: true
-    name: mac-pro-composes  # shared network

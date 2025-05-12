@@ -1,34 +1,27 @@
 ---
-name: mac-pro-composes
+x-refs:
+  shared-envs: &shared-envs
+    PUID: &puid ${PUID:?user id}
+    PGID: &pgid ${PGID:?group id}
+    TZ: &tz ${TZ:?timezone}
 
 services:
+  # https://docs.linuxserver.io/images/docker-obsidian/
   obsidian:
-    # https://docs.linuxserver.io/images/docker-obsidian/
-    image: lscr.io/linuxserver/obsidian:latest
+    image: ${OBSIDIAN_IMAGE:?obsidian image}:${OBSIDIAN_TAG:-latest}
     profiles:
       - obsidian
-      - kasm
     security_opt: [
-      seccomp:unconfined  # optional
+      seccomp:unconfined  # better compatibility with some hosts
     ]
     environment:
+      <<: *shared-envs
       # https://github.com/linuxserver/docker-obsidian#optional-environment-variables
-      # https://github.com/linuxserver/docker-baseimage-kasmvnc?tab=readme-ov-file#options
-      PUID: &puid 501  # check `id` on host, also used in put_obsidian.zsh
-      PGID: &pgid 20   # check `id` on host, also used in put_obsidian.zsh
-      TZ: &tz Europe/Prague # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List
+      TITLE: ${TITLE}
+      FM_HOME: ${FM_HOME}
+      START_DOCKER: ${START_DOCKER}
       FILE__CUSTOM_USER: /run/secrets/obsidian-basic-auth-user
       FILE__PASSWORD: /run/secrets/obsidian-basic-auth-password
-      TITLE: 👤🧠🗂️ Personal Obsidian
-      FM_HOME: /config/Downloads
-      START_DOCKER: "false"
-    labels:
-      one.dify.obsidian.putscript: "true" # explicit label which helps put_obsidian.zsh script find this container
-      homepage.group: Tools
-      homepage.name: Obsidian
-      homepage.icon: obsidian.svg # https://gethomepage.dev/configs/services/#icons
-      homepage.href: "https://localhost:3101/"
-      homepage.description: "Personal knowledge data lake"
     volumes:
       - ./obsidian/config:/config
       - &datamount syncthing-data:/config/data
@@ -37,25 +30,28 @@ services:
     secrets:
       - obsidian-basic-auth-user
       - obsidian-basic-auth-password
-    # port configs must be pushed to network mode container (wireguard)
     ports:
-      - 127.0.0.1:3101:3001 # https obsidian desktop GUI
-    shm_size: "1gb" # needed for electron applications to function properly
-    restart: &restartpolicy unless-stopped
+      - 127.0.0.1:${HOST_PORT:-3001}:3001 # https obsidian desktop GUI
+    shm_size: ${SHM_SIZE:-1gb}
+    restart: &restart ${RESTART}
+    labels:
+      one.dify.obsidian.putscript: "true" # explicit label which helps put_obsidian.zsh script find this container
+      homepage.group: Tools
+      homepage.name: Obsidian
+      homepage.icon: obsidian.svg # https://gethomepage.dev/configs/services/#icons
+      homepage.href: "https://localhost:${HOST_PORT:-3001}/"
+      homepage.description: "Personal knowledge data lake"
     depends_on:
       - syncthing
 
+  # https://docs.linuxserver.io/images/docker-syncthing/
   syncthing:
-    # https://docs.linuxserver.io/images/docker-syncthing/
-    image: lscr.io/linuxserver/syncthing:latest
+    image: ${SYNCTHING_IMAGE:?syncthing image}:${SYNCTHING_TAG:-latest}
     profiles:
       - obsidian
       - syncthing
-      - utils
     environment:
-      PUID: *puid
-      PGID: *pgid
-      TZ: *tz
+      <<: *shared-envs
     labels:
       homepage.group: Utils
       homepage.name: Syncthing
@@ -65,26 +61,20 @@ services:
     volumes:
       - ./syncthing/config:/config
       - *datamount
-    # port configs must be pushed to network mode container (wireguard)
     ports: [
-      # 127.0.0.1:3002:8384 # http syncthing GUI (exposed through reverse proxy)
+      # 127.0.0.1:8384:8384 # http syncthing GUI (exposed through reverse proxy)
       # disable discovery ports, this device won't be reachable directly
       # 22000:22000/tcp # TCP based sync protocol traffic
       # 22000:22000/udp # QUIC based sync protocol traffic
       # 21027:21027/udp # discovery broadcasts on IPv4 and multicasts on IPv6
     ]
-    restart: *restartpolicy
+    restart: *restart
 
 volumes:
   syncthing-data:
 
-networks:
-  default:
-    external: true
-    name: mac-pro-composes  # shared network
-
 secrets:
   obsidian-basic-auth-user:
-    file: ~/.config/custom/linuxserver-obsidian/secrets/basic-auth-user
+    file: ${OBSIDIAN_SECRETS_BASE_DIR}/basic-auth-user
   obsidian-basic-auth-password:
-    file: ~/.config/custom/linuxserver-obsidian/secrets/basic-auth-password
+    file: ${OBSIDIAN_SECRETS_BASE_DIR}/basic-auth-password
