@@ -12,8 +12,8 @@ services:
     profiles:
       - obsidian
     security_opt: [
-      seccomp:unconfined  # better compatibility with some hosts
-    ]
+        seccomp:unconfined, # better compatibility with some hosts
+      ]
     environment:
       <<: *shared-envs
       # https://github.com/linuxserver/docker-obsidian#optional-environment-variables
@@ -61,13 +61,12 @@ services:
     volumes:
       - ./syncthing/config:/config
       - *datamount
-    ports: [
-      # 127.0.0.1:8384:8384 # http syncthing GUI (exposed through reverse proxy)
-      # disable discovery ports, this device won't be reachable directly
-      # 22000:22000/tcp # TCP based sync protocol traffic
-      # 22000:22000/udp # QUIC based sync protocol traffic
-      # 21027:21027/udp # discovery broadcasts on IPv4 and multicasts on IPv6
-    ]
+    # ports:
+    #   - 127.0.0.1:8384:8384 # http syncthing GUI (exposed through reverse proxy)
+    #   # disable discovery ports, this device won't be reachable directly
+    #   - 22000:22000/tcp # TCP based sync protocol traffic
+    #   - 22000:22000/udp # QUIC based sync protocol traffic
+    #   - 21027:21027/udp # discovery broadcasts on IPv4 and multicasts on IPv6
     restart: *restart
 
 volumes:
