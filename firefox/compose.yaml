@@ -6,8 +6,8 @@ services:
     profiles:
       - firefox
     security_opt: [
-      seccomp:unconfined  # better compatibility with some hosts
-    ]
+        seccomp:unconfined, # better compatibility with some hosts
+      ]
     environment:
       # https://github.com/linuxserver/docker-firefox#optional-environment-variables
       PUID: ${PUID:?user id}
@@ -19,7 +19,7 @@ services:
       START_DOCKER: ${START_DOCKER}
       FILE__CUSTOM_USER: /run/secrets/firefox-basic-auth-user
       FILE__PASSWORD: /run/secrets/firefox-basic-auth-password
-      DOCKER_MODS: linuxserver/mods:universal-cron  # enables cron jobs from ./firefox/crontabs
+      DOCKER_MODS: linuxserver/mods:universal-cron # enables cron jobs from ./firefox/crontabs
     volumes:
       - ./firefox/config:/config
       - ./firefox/crontabs:/config/crontabs:ro

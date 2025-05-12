@@ -3,9 +3,8 @@ services:
   # https://github.com/Tecnativa/docker-socket-proxy
   dockerproxy:
     image: ${DOCKER_PROXY_IMAGE:?docker socket proxy}:${DOCKER_PROXY_TAG:-latest}
-    ports: [
-      # 127.0.0.1:2375:2375 # used by homepage auto-discovery (no need to expose to host)
-    ]
+    # ports:
+    #   - 127.0.0.1:2375:2375, # used by homepage auto-discovery (no need to expose to host)
     environment:
       CONTAINERS: 1 # Allow access to viewing containers
       IMAGES: 1 # Allow access to viewing images
@@ -17,9 +16,8 @@ services:
   # https://github.com/gethomepage/homepage
   homepage:
     image: ${HOMEPAGE_IMAGE:?homepage image}:${HOMEPAGE_TAG:-latest}
-    ports: [
-      #  127.0.0.1:3000:3000  # exposed though reverse proxy
-    ]
+    # ports:
+    #   - 127.0.0.1:3000:3000, # exposed though reverse proxy
     volumes:
       - ./homepage/config:/app/config
     environment:

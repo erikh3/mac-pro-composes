@@ -1,33 +1,32 @@
 ---
 services:
-    # https://github.com/smallstep/certificates
-    step-ca:
-        image: ${IMAGE:?step-ca image}:${TAG:-latest}
-        environment:
-            DOCKER_STEPCA_INIT_NAME: ${INIT_NAME}
-            DOCKER_STEPCA_DEPLOYMENT_TYPE: standalone
-            DOCKER_STEPCA_INIT_DNS_NAMES: ${INIT_DNS_NAMES}
-            DOCKER_STEPCA_INIT_PROVISIONER_NAME: default-jwk
-            DOCKER_STEPCA_INIT_ACME: ${INIT_ACME}
-            DOCKER_STEPCA_INIT_PASSWORD_FILE: /run/secrets/ca-password
-            DOCKER_STEPCA_INIT_PROVISIONER_PASSWORD_FILE: /run/secrets/default-jwk-provisioner-password
-        ports:
-            - 127.0.0.1:${HOST_PORT}:9000 # after root cert is installed, port can be disabled
-        volumes:
-            - ./step:/home/step
-            - ./service-certs:/home/service-certs
-        secrets:
-            - ca-password
-            - default-jwk-provisioner-password
-        restart: ${RESTART}
-        networks:
-            default:
-                aliases:
-                    - stepca
+  # https://github.com/smallstep/certificates
+  step-ca:
+    image: ${IMAGE:?step-ca image}:${TAG:-latest}
+    environment:
+      DOCKER_STEPCA_INIT_NAME: ${INIT_NAME}
+      DOCKER_STEPCA_DEPLOYMENT_TYPE: standalone
+      DOCKER_STEPCA_INIT_DNS_NAMES: ${INIT_DNS_NAMES}
+      DOCKER_STEPCA_INIT_PROVISIONER_NAME: default-jwk
+      DOCKER_STEPCA_INIT_ACME: ${INIT_ACME}
+      DOCKER_STEPCA_INIT_PASSWORD_FILE: /run/secrets/ca-password
+      DOCKER_STEPCA_INIT_PROVISIONER_PASSWORD_FILE: /run/secrets/default-jwk-provisioner-password
+    ports:
+      - 127.0.0.1:${HOST_PORT}:9000 # after root cert is installed, port can be disabled
+    volumes:
+      - ./step:/home/step
+      - ./service-certs:/home/service-certs
+    secrets:
+      - ca-password
+      - default-jwk-provisioner-password
+    restart: ${RESTART}
+    networks:
+      default:
+        aliases:
+          - stepca
 
 secrets:
-    ca-password:
-        file: ${SECRETS_BASE_DIR}/ca-password
-    default-jwk-provisioner-password:
-        file: ${SECRETS_BASE_DIR}/default-jwk-password
-
+  ca-password:
+    file: ${SECRETS_BASE_DIR}/ca-password
+  default-jwk-provisioner-password:
+    file: ${SECRETS_BASE_DIR}/default-jwk-password
