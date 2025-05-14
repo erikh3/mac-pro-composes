@@ -27,6 +27,6 @@ services:
 
 secrets:
   ca-password:
-    file: ${SECRETS_BASE_DIR}/ca-password
+    file: ${STEPCA_SECRETS_BASE_DIR}/ca-password
   default-jwk-provisioner-password:
-    file: ${SECRETS_BASE_DIR}/default-jwk-password
+    file: ${STEPCA_SECRETS_BASE_DIR}/default-jwk-password
