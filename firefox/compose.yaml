@@ -24,6 +24,9 @@ services:
       - ./firefox/config:/config
       - ./firefox/crontabs:/config/crontabs:ro
       - ./firefox/scripts:/config/scripts:ro
+      # keep firefox profile data out of host filesystem
+      - mozilla-data:/config/.mozilla # firefox profile data
+      - mozilla-cache:/config/.cache/mozilla/ # firefox cache
     secrets:
       - firefox-basic-auth-user
       - firefox-basic-auth-password
@@ -38,6 +41,10 @@ services:
       # homepage.href: "https://firefox.localhost/" # through nginx proxy
       homepage.href: "https://localhost:${HOST_PORT:-3001}/" # direct access
       homepage.description: "Firefox browser"
+
+volumes:
+  mozilla-data:
+  mozilla-cache:
 
 secrets:
   firefox-basic-auth-user:
