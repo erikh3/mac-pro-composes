@@ -1,8 +1,8 @@
 ---
 services:
-  # https://github.com/Tecnativa/docker-socket-proxy
+  # https://github.com/linuxserver/docker-socket-proxy/
   dockerproxy:
-    image: ${DOCKER_PROXY_IMAGE:?docker socket proxy}:${DOCKER_PROXY_TAG:-latest}
+    image: ${SOCKET_PROXY_IMAGE:?socket proxy}:${SOCKET_PROXY_TAG:-latest}
     # ports:
     #   - 127.0.0.1:2375:2375, # used by homepage auto-discovery (no need to expose to host)
     environment:
