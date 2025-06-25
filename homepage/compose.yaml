@@ -10,7 +10,22 @@ services:
       IMAGES: 1 # Allow access to viewing images
       POST: 0 # Disallow any POST operations (effectively read-only)
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ~/.docker/run/docker.sock:/var/run/docker.sock:ro
+    restart: ${RESTART}
+
+  # https://github.com/linuxserver/docker-socket-proxy/
+  podmanproxy:
+    image: ${SOCKET_PROXY_IMAGE:?socket proxy}:${SOCKET_PROXY_TAG:-latest}
+    profiles:
+      - podman-proxy
+    # ports:
+    #   - 127.0.0.1:2375:2375, # used by homepage auto-discovery (no need to expose to host)
+    environment:
+      CONTAINERS: 1 # Allow access to viewing containers
+      IMAGES: 1 # Allow access to viewing images
+      POST: 0 # Disallow any POST operations (effectively read-only)
+    volumes:
+      - ~/.local/share/containers/podman/machine/podman.sock:/var/run/docker.sock:ro
     restart: ${RESTART}
 
   # https://github.com/gethomepage/homepage

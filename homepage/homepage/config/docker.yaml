@@ -2,9 +2,11 @@
 # For configuration options and examples, please see:
 # https://gethomepage.dev/configs/docker/
 
-my-docker:
+local-docker:
   host: dockerproxy
   port: 2375
 
-# my-docker:
-#   socket: /var/run/docker.sock
+local-podman:
+  host: podmanproxy
+  port: 2375
+
