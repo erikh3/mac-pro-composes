@@ -1,31 +1,39 @@
 ---
 services:
-  # https://github.com/linuxserver/docker-socket-proxy/
+  # https://github.com/11notes/docker-socket-proxy
   dockerproxy:
     image: ${SOCKET_PROXY_IMAGE:?socket proxy}:${SOCKET_PROXY_TAG:-latest}
-    # ports:
-    #   - 127.0.0.1:2375:2375, # used by homepage auto-discovery (no need to expose to host)
+    read_only: true
+    # Note: When using Docker Desktop on macOS, the mounted files are owned by root:root, so you need to run the container as root :(
+    # user: "${PUID:?user id}:${PGID:?group id}" # make sure to use the same PUID/PGID as the owner of your docker socket!
     environment:
-      CONTAINERS: 1 # Allow access to viewing containers
-      IMAGES: 1 # Allow access to viewing images
-      POST: 0 # Disallow any POST operations (effectively read-only)
+      TZ: ${TZ:?timezone}
+      SOCKET_PROXY_DOCKER_SOCKET: /run/docker.sock # path to the actual docker socket
+      SOCKET_PROXY_VOLUME: /run/docker-proxy # path to the docker volume used to expose the prox socket
+      SOCKET_PROXY_UID: "${PUID:?user id}" # the UID used to run the proxy parts
+      SOCKET_PROXY_GID: "${PGID:?group id}" # the GID used to run the proxy parts
     volumes:
-      - ~/.docker/run/docker.sock:/var/run/docker.sock:ro
+      - ~/.docker/run/docker.sock:/run/docker.sock:ro # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
+      - docker-socket-proxy:/run/docker-proxy # this socket is run as defined by env variables
     restart: ${RESTART}
 
-  # https://github.com/linuxserver/docker-socket-proxy/
+  # https://github.com/11notes/docker-socket-proxy
   podmanproxy:
     image: ${SOCKET_PROXY_IMAGE:?socket proxy}:${SOCKET_PROXY_TAG:-latest}
+    read_only: true
+    # Note: When using Docker Desktop on macOS, the mounted files are owned by root:root, so you need to run the container as root :(
+    # user: "${PUID:?user id}:${PGID:?group id}" # make sure to use the same PUID/PGID as the owner of your docker socket!
     profiles:
       - podman-proxy
-    # ports:
-    #   - 127.0.0.1:2375:2375, # used by homepage auto-discovery (no need to expose to host)
     environment:
-      CONTAINERS: 1 # Allow access to viewing containers
-      IMAGES: 1 # Allow access to viewing images
-      POST: 0 # Disallow any POST operations (effectively read-only)
+      TZ: ${TZ:?timezone}
+      SOCKET_PROXY_DOCKER_SOCKET: /run/docker.sock # path to the actual docker socket
+      SOCKET_PROXY_VOLUME: /run/podman-proxy # path to the docker volume used to expose the prox socket
+      SOCKET_PROXY_UID: "${PUID:?user id}" # the UID used to run the proxy parts
+      SOCKET_PROXY_GID: "${PGID:?group id}" # the GID used to run the proxy parts
     volumes:
-      - ~/.local/share/containers/podman/machine/podman.sock:/var/run/docker.sock:ro
+      - ~/.local/share/containers/podman/machine/podman.sock:/run/docker.sock:ro # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
+      - podman-socket-proxy:/run/podman-proxy # this socket is run as defined by env variables
     restart: ${RESTART}
 
   # https://github.com/gethomepage/homepage
@@ -35,9 +43,15 @@ services:
     #   - 127.0.0.1:3000:3000, # exposed though reverse proxy
     volumes:
       - ./homepage/config:/app/config
+      - docker-socket-proxy:/var/run/docker-proxy # mount the docker socket proxy
+      - podman-socket-proxy:/var/run/podman-proxy # mount the podman socket proxy
     environment:
       PUID: ${PUID:?user id} # check `id` on host
       PGID: ${PGID:?group id} # check `id` on host
       TZ: ${TZ:?timezone}
       HOMEPAGE_ALLOWED_HOSTS: "*" # gethomepage.dev/installation/#homepage_allowed_hosts
     restart: ${RESTART}
+
+volumes:
+  docker-socket-proxy:
+  podman-socket-proxy:
