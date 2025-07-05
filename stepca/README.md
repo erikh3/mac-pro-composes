@@ -92,8 +92,8 @@ CONTAINER_ID=$(docker container ls -q --filter "label=one.dify.stepca=true" --fi
 docker exec -t $CONTAINER_ID bash -c "step ca certificate shared-localhost-stepca \
    --san localhost --san 127.0.0.1 \
    --san homepage.localhost \
-   --san firefox.localhost \
-   --san obsidian.localhost \
+   --san firefox.localhost --san 127.0.0.1:3104 \
+   --san obsidian.localhost --san 127.0.0.1:3101 \
    --san syncthing.localhost \
    --san it-tools.localhost \
    --not-after 40000h \
@@ -105,3 +105,10 @@ docker exec -t $CONTAINER_ID bash -c "step ca certificate shared-localhost-stepc
 ```
 
 - https://smallstep.com/docs/step-cli/reference/ca/certificate/index.html
+
+Note: The `localhost:3104` does not work.
+
+7. Install certs to apps
+
+Go into individual applications & copy the `service-certs/localhost.crt` & `service-certs/localhost.key`
+to `config/ssl/cert.key` & `config/ssl/cert.key`.
