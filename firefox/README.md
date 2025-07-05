@@ -1,6 +1,10 @@
 # stepca certificates
 
-Replace certificates from `service-certs` to `firefox/config/ssl`.
+~~Replace certificates from `service-certs` to `firefox/config/ssl`.~~
+
+```shell
+cd stepca && ./distribute-certs.zsh
+```
 
 # Tips
 

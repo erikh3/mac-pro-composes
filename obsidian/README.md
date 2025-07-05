@@ -2,7 +2,11 @@ Personal knowledge data lake based on awesome [Obsidian](https://obsidian.md/).
 
 # stepca certificates
 
-Replace certificates from `service-certs` to `firefox/config/ssl`.
+~~Replace certificates from `service-certs` to `firefox/config/ssl`.~~
+
+```shell
+cd stepca && ./distribute-certs.zsh
+```
 
 # Start
 
