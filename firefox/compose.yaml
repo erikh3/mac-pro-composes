@@ -38,8 +38,8 @@ services:
       homepage.group: Utils
       homepage.name: ${TITLE}
       homepage.icon: firefox.svg # https://gethomepage.dev/configs/services/#icons
-      # homepage.href: "https://firefox.localhost/" # through nginx proxy
-      homepage.href: "https://localhost:${HOST_PORT:-3001}/" # direct access
+      homepage.href: "https://firefox.localhost/" # through nginx proxy
+      # homepage.href: "https://localhost:${HOST_PORT:-3001}/" # direct access
       homepage.description: "Firefox browser"
 
 volumes:
