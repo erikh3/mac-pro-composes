@@ -20,6 +20,8 @@ services:
       - ca-password
       - default-jwk-provisioner-password
     restart: ${RESTART}
+    labels:
+      one.dify.stepca: "true"
     networks:
       default:
         aliases:
