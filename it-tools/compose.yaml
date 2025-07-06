@@ -2,7 +2,7 @@
 services:
   # https://github.com/CorentinTh/it-tools
   it-tools:
-    image: ${IMAGE:?it-tools image}:${TAG:-latest}
+    image: ${IMAGE:?it-tools image required}:${TAG:-latest}
     profiles:
       - it-tools
     # ports:

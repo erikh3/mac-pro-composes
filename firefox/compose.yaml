@@ -2,7 +2,7 @@
 services:
   # https://docs.linuxserver.io/images/docker-firefox/
   firefox:
-    image: ${FIREFOX_IMAGE:?firefox image}:${FIREFOX_TAG:-latest}
+    image: ${FIREFOX_IMAGE:?firefox image required}:${FIREFOX_TAG:-latest}
     profiles:
       - firefox
     security_opt: [
@@ -10,9 +10,9 @@ services:
       ]
     environment:
       # https://github.com/linuxserver/docker-firefox#optional-environment-variables
-      PUID: ${PUID:?user id}
-      PGID: ${PGID:?group id}
-      TZ: ${TZ:?timezone}
+      PUID: ${PUID:?user id required}
+      PGID: ${PGID:?group id required}
+      TZ: ${TZ:?timezone required}
       TITLE: ${TITLE}
       NO_DECOR: ${NO_DECOR}
       FM_HOME: ${FM_HOME}

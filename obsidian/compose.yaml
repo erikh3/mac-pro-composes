@@ -1,14 +1,14 @@
 ---
 x-refs:
   shared-envs: &shared-envs
-    PUID: &puid ${PUID:?user id}
-    PGID: &pgid ${PGID:?group id}
-    TZ: &tz ${TZ:?timezone}
+    PUID: &puid ${PUID:?user id required}
+    PGID: &pgid ${PGID:?group id required}
+    TZ: &tz ${TZ:?timezone required}
 
 services:
   # https://docs.linuxserver.io/images/docker-obsidian/
   obsidian:
-    image: ${OBSIDIAN_IMAGE:?obsidian image}:${OBSIDIAN_TAG:-latest}
+    image: ${OBSIDIAN_IMAGE:?obsidian image required}:${OBSIDIAN_TAG:-latest}
     profiles:
       - obsidian
     security_opt: [
@@ -46,7 +46,7 @@ services:
 
   # https://docs.linuxserver.io/images/docker-syncthing/
   syncthing:
-    image: ${SYNCTHING_IMAGE:?syncthing image}:${SYNCTHING_TAG:-latest}
+    image: ${SYNCTHING_IMAGE:?syncthing image required}:${SYNCTHING_TAG:-latest}
     profiles:
       - obsidian
       - syncthing

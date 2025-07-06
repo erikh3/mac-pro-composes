@@ -2,7 +2,7 @@
 services:
   # https://github.com/smallstep/certificates
   step-ca:
-    image: ${IMAGE:?step-ca image}:${TAG:-latest}
+    image: ${IMAGE:?step-ca image required}:${TAG:-latest}
     environment:
       DOCKER_STEPCA_INIT_NAME: ${INIT_NAME}
       DOCKER_STEPCA_DEPLOYMENT_TYPE: standalone
