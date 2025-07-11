@@ -15,7 +15,6 @@ services:
       TZ: ${TZ:?timezone required}
       TITLE: ${TITLE}
       NO_DECOR: ${NO_DECOR}
-      FM_HOME: ${FM_HOME}
       START_DOCKER: ${START_DOCKER}
       FILE__CUSTOM_USER: /run/secrets/firefox-basic-auth-user
       FILE__PASSWORD: /run/secrets/firefox-basic-auth-password
