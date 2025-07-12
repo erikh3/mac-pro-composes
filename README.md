@@ -41,3 +41,9 @@ The default profiles & other environment variables are pre-filled in `.env` file
 ```shell
 docker compose up -d
 ```
+
+Enable profiles explicitly:
+
+```shell
+docker compose --profile webtop up -d
+```
