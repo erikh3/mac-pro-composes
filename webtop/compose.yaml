@@ -24,6 +24,12 @@ services:
     network_mode: service:gluetun
     shm_size: ${SHM_SIZE:-1gb}
     restart: &restart ${RESTART}
+    labels:
+      homepage.group: Utils
+      homepage.name: ${TITLE}
+      homepage.icon: sh-webtop # https://gethomepage.dev/configs/services/#icons
+      homepage.href: "https://localhost:${HOST_PORT:-3002}/"
+      homepage.description: "Linux desktop in a browser via VPN"
     depends_on:
       gluetun:
         condition: service_healthy
