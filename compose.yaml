@@ -6,6 +6,7 @@ include:
   - it-tools/compose.yaml
   - firefox/compose.yaml
   - obsidian/compose.yaml
+  - webtop/compose.yaml
 
 networks:
   default:

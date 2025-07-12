@@ -1,0 +1,63 @@
+---
+x-refs:
+  shared-envs: &shared-envs
+    PUID: ${PUID:?user id required}
+    PGID: ${PGID:?group id required}
+    TZ: ${TZ:?timezone required}
+
+services:
+  webtop:
+    # https://docs.linuxserver.io/images/docker-webtop/
+    image: ${WEBTOP_IMAGE?webtop image required}:${WEBTOP_TAG:-latest}
+    profiles:
+      - webtop
+    security_opt: [
+      seccomp:unconfined  # better compatibility with some hosts
+    ]
+    environment:
+      <<: *shared-envs
+      # https://docs.linuxserver.io/images/docker-webtop/#options-in-all-selkies-based-gui-containers
+      TITLE: ${TITLE}
+      START_DOCKER: ${START_DOCKER}
+    volumes:
+      - ./webtop/config:/config
+    network_mode: service:gluetun
+    shm_size: ${SHM_SIZE:-1gb}
+    restart: &restart ${RESTART}
+    depends_on:
+      gluetun:
+        condition: service_healthy
+
+  gluetun:
+    # https://github.com/qdm12/gluetun
+    image: ${GLUETUN_IMAGE?gluetun image required}:${GLUETUN_TAG:-latest}
+    profiles:
+      - webtop
+    container_name: gluetun # must be set explicitly to allow external containers to connect
+    hostname: gluetun # prevent chromium (running in webtop container) profile lock due to hostname change
+    entrypoint: [ "/entrypoint.sh" ] # custom entrypoint to load wg0.conf secret to /gluetun/wireguard/wg0.conf
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports: # Note: webtop service uses network_mode: service:gluetun, so ports have to be exposed here
+      - 127.0.0.1:${HOST_PORT:-3002}:3001 # https webtop desktop GUI
+    volumes:
+      - ./gluetun/entrypoint.sh:/entrypoint.sh:ro # custom entrypoint script to load wg0.conf secret
+    # https://github.com/qdm12/gluetun-wiki/tree/main/setup/options
+    environment:
+      <<: *shared-envs
+      VPN_SERVICE_PROVIDER: custom
+      VPN_TYPE: wireguard # https://github.com/qdm12/gluetun-wiki/blob/main/setup/providers/custom.md#wireguard
+      # Server list updater, not needed for custom wireguard
+      # See https://github.com/qdm12/gluetun-wiki/blob/main/setup/servers.md#update-the-vpn-servers-list
+      UPDATER_PERIOD: 0
+      WIREGUARD_CONFIG_LOCATION: /run/secrets/wg0.conf # where wg0.conf secret is mounted
+    secrets:
+      - wg0.conf  # https://github.com/qdm12/gluetun-wiki/blob/main/setup/options/wireguard.md
+    restart: *restart
+
+secrets:
+  wg0.conf:
+    # note: endpoint: domain:<port> is not supported, use IP
+    file: ${GLUETUN_SECRETS_BASE_DIR}/wg0.conf
