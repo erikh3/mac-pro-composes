@@ -47,3 +47,17 @@ Enable profiles explicitly:
 ```shell
 docker compose --profile webtop up -d
 ```
+
+## Updating
+
+Pull new image. Check in `.env` for particular image name.
+
+```shell
+docker pull lscr.io/linuxserver/obsidian:latest
+```
+
+Update that particular container.
+
+```shell
+docker compose up -d obsidian
+```
