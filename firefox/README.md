@@ -6,7 +6,16 @@
 cd stepca && ./distribute-certs.zsh
 ```
 
+# Mozilla profile
+
+The `/config` directory in the container contains `.mozilla` subdirectory which holds Firefox profile.
+`.mozilla` is mounted as a named volume, `/config` is set up as host mount. Make sure both are in sync.
+
+If you nuke `/config` also nuke `mozilla-data` volume. Otherwise you get missing profile error.
+
 # Tips
+
+To toggle (show/hide) title bar (draggable window) inside use `Ctrl` + `Shift` + `d`.
 
 When you cannot connect to KASM VNC, nuke currently open tabs.
 
