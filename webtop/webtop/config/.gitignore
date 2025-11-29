@@ -5,3 +5,5 @@ ssl/*
 tmp-data/
 proot-apps/
 !.gitignore
+
+Downloads
