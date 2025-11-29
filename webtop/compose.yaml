@@ -20,8 +20,12 @@ services:
       # https://docs.linuxserver.io/images/docker-webtop/#options-in-all-selkies-based-gui-containers
       TITLE: ${TITLE}
       START_DOCKER: ${START_DOCKER}
+      DOCKER_MODS: linuxserver/mods:universal-tshoot|linuxserver/mods:universal-package-install|linuxserver/mods:universal-cron
+      INSTALL_PACKAGES: apt-transport-https|ca-certificates|curl|gnupg|git|htop|btop|nano|vim
     volumes:
       - ./webtop/config:/config
+      - ./webtop/crontabs:/config/crontabs:ro
+      - ./webtop/scripts:/config/scripts:ro
     network_mode: service:gluetun
     shm_size: ${SHM_SIZE:-1gb}
     restart: &restart ${RESTART}

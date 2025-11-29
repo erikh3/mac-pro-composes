@@ -6,4 +6,5 @@ tmp-data/
 proot-apps/
 !.gitignore
 
-Downloads
+Downloads/
+logs/
