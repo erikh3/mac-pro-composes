@@ -3,6 +3,8 @@ services:
   # https://docs.linuxserver.io/images/docker-nginx/
   nginx:
     image: ${IMAGE:?nginx image required}:${TAG:-latest}
+    profiles:
+      - nginx
     environment:
       PUID: ${PUID:?user id required}
       PGID: ${PGID:?group id required}

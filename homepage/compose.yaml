@@ -1,23 +1,6 @@
 ---
 services:
   # https://github.com/11notes/docker-socket-proxy
-  dockerproxy:
-    image: ${SOCKET_PROXY_IMAGE:?socket proxy image required}:${SOCKET_PROXY_TAG:-latest}
-    read_only: true
-    # Note: When using Docker Desktop on macOS, the mounted files are owned by root:root, so you need to run the container as root :(
-    # user: "${PUID:?user id required}:${PGID:?group id required}" # make sure to use the same PUID/PGID as the owner of your docker socket!
-    environment:
-      TZ: ${TZ:?timezone required}
-      SOCKET_PROXY_DOCKER_SOCKET: /run/docker.sock # path to the actual docker socket
-      SOCKET_PROXY_VOLUME: /run/docker-proxy # path to the docker volume used to expose the prox socket
-      SOCKET_PROXY_UID: "${PUID:?user id required}" # the UID used to run the proxy parts
-      SOCKET_PROXY_GID: "${PGID:?group id required}" # the GID used to run the proxy parts
-    volumes:
-      - ~/.docker/run/docker.sock:/run/docker.sock:ro # mount host docker socket, the :ro does not mean read-only for the socket, just for the actual file
-      - docker-socket-proxy:/run/docker-proxy # this socket is run as defined by env variables
-    restart: ${RESTART}
-
-  # https://github.com/11notes/docker-socket-proxy
   podmanproxy:
     image: ${SOCKET_PROXY_IMAGE:?socket proxy image required}:${SOCKET_PROXY_TAG:-latest}
     read_only: true
@@ -51,7 +34,17 @@ services:
       TZ: ${TZ:?timezone required}
       HOMEPAGE_ALLOWED_HOSTS: "*" # gethomepage.dev/installation/#homepage_allowed_hosts
     restart: ${RESTART}
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.homepage.rule: "Host(`homepage.localhost`)"
+      traefik.http.routers.homepage.entrypoints: "web"
+      traefik.http.middlewares.httpsredirect.redirectscheme.scheme: "https"
+      traefik.http.middlewares.httpsredirect.redirectscheme.permanent: "true"
+      traefik.http.routers.homepage.middlewares: "httpsredirect"
+      traefik.http.routers.homepage-secure.rule: "Host(`homepage.localhost`)"
+      traefik.http.routers.homepage-secure.entrypoints: "websecure"
+      traefik.http.routers.homepage-secure.tls: "true"
+      traefik.http.services.homepage.loadbalancer.server.port: "3000"
 
 volumes:
-  docker-socket-proxy:
   podman-socket-proxy:

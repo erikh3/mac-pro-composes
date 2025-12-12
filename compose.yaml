@@ -1,5 +1,6 @@
 ---
 include:
+  - docker-socket-proxy/compose.yaml
   - nginx/compose.yaml
   - stepca/compose.yaml
   - homepage/compose.yaml
@@ -7,6 +8,7 @@ include:
   - firefox/compose.yaml
   - obsidian/compose.yaml
   - webtop/compose.yaml
+  - traefik/compose.yaml
 
 networks:
   default:

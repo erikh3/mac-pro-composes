@@ -1,0 +1,62 @@
+---
+services:  
+  traefik:
+    # https://doc.traefik.io/traefik/
+    # https://hub.docker.com/_/traefik/
+    image: ${IMAGE:-traefik}:${TAG:-latest}
+    profiles:
+      - traefik
+      - traefik-debug
+    environment:
+      TZ: Europe/Prague # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List
+    command:  # exec into teraefik container & run `traefik --help` to see all available options
+      - "--log.level=DEBUG"
+      - "--accesslog.filePath=/logs/access.log"
+      - "--api.insecure=false"  # dashboard exported through https (check this service labels)
+      - "--api.dashboard=true"
+      - "--api.disabledashboardad=true"
+      - "--providers.docker=true"
+      - "--providers.docker.endpoint=unix:///var/run/docker-proxy/docker.sock"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/config/traefik"
+      - "--providers.file.watch=true"
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.websecure.address=:443"
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.dashboard.rule: "Host(`traefik.localhost`)"
+      traefik.http.routers.dashboard.entrypoints: "websecure"
+      traefik.http.routers.dashboard.tls: "true"
+      traefik.http.routers.dashboard.service: "dashboard@internal"
+      traefik.http.routers.api.rule: "Host(`traefik.localhost`) && PathPrefix(`/api`)"
+      traefik.http.routers.api.entrypoints: "websecure"
+      traefik.http.routers.api.tls: "true"
+      traefik.http.routers.api.service: "api@internal"
+      homepage.group: Miscellaneous
+      homepage.name: Traefik dashboard
+      homepage.icon: traefik # https://gethomepage.dev/configs/services/#icons
+      homepage.href: "https://traefik.localhost/"
+      homepage.description: "HTTP reverse proxy"
+    ports:
+      - 127.0.0.1:80:80
+      - 127.0.0.1:443:443
+    volumes:
+      - docker-socket-proxy:/var/run/docker-proxy # mount the docker socket proxy
+      - ./service-certs:/config/service-certs:ro
+      - ./traefik/dynamic.yml:/config/traefik/dynamic.yml:ro
+      - ./logs:/logs
+    restart: ${RESTART_POLICY:-unless-stopped}
+
+  # Simple service to test Traefik routing
+  whoami:
+    image: traefik/whoami
+    profiles:
+      - traefik-debug
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`whoami.localhost`)"
+      - "traefik.http.routers.whoami.entrypoints=web"
+      - "traefik.http.routers.whoami-secure.rule=Host(`whoami.localhost`)"
+      - "traefik.http.routers.whoami-secure.entrypoints=websecure"
+      - "traefik.http.routers.whoami-secure.tls=true"
+      - "traefik.http.services.whoami.loadbalancer.server.port=80"

@@ -34,6 +34,16 @@ services:
     shm_size: ${SHM_SIZE:-1gb}
     restart: ${RESTART}
     labels:
+      traefik.enable: "true"
+      traefik.http.routers.firefox.rule: "Host(`firefox.localhost`)"
+      traefik.http.routers.firefox.entrypoints: "web"
+      traefik.http.middlewares.httpsredirect.redirectscheme.scheme: "https"
+      traefik.http.middlewares.httpsredirect.redirectscheme.permanent: "true"
+      traefik.http.routers.firefox.middlewares: "httpsredirect"
+      traefik.http.routers.firefox-secure.rule: "Host(`firefox.localhost`)"
+      traefik.http.routers.firefox-secure.entrypoints: "websecure"
+      traefik.http.routers.firefox-secure.tls: "true"
+      traefik.http.services.firefox.loadbalancer.server.port: "3000"
       homepage.group: Utils
       homepage.name: ${TITLE}
       homepage.icon: firefox.svg # https://gethomepage.dev/configs/services/#icons

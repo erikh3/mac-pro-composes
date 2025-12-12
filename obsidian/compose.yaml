@@ -36,6 +36,16 @@ services:
     restart: &restart ${RESTART}
     labels:
       one.dify.obsidian.putscript: "true" # explicit label which helps put_obsidian.zsh script find this container
+      traefik.enable: "true"
+      traefik.http.routers.obsidian.rule: "Host(`obsidian.localhost`)"
+      traefik.http.routers.obsidian.entrypoints: "web"
+      traefik.http.middlewares.httpsredirect.redirectscheme.scheme: "https"
+      traefik.http.middlewares.httpsredirect.redirectscheme.permanent: "true"
+      traefik.http.routers.obsidian.middlewares: "httpsredirect"
+      traefik.http.routers.obsidian-secure.rule: "Host(`obsidian.localhost`)"
+      traefik.http.routers.obsidian-secure.entrypoints: "websecure"
+      traefik.http.routers.obsidian-secure.tls: "true"
+      traefik.http.services.obsidian.loadbalancer.server.port: "3000"
       homepage.group: Tools
       homepage.name: Obsidian
       homepage.icon: obsidian.svg # https://gethomepage.dev/configs/services/#icons
@@ -53,6 +63,16 @@ services:
     environment:
       <<: *shared-envs
     labels:
+      traefik.enable: "true"
+      traefik.http.routers.syncthing.rule: "Host(`syncthing.localhost`)"
+      traefik.http.routers.syncthing.entrypoints: "web"
+      traefik.http.middlewares.httpsredirect.redirectscheme.scheme: "https"
+      traefik.http.middlewares.httpsredirect.redirectscheme.permanent: "true"
+      traefik.http.routers.syncthing.middlewares: "httpsredirect"
+      traefik.http.routers.syncthing-secure.rule: "Host(`syncthing.localhost`)"
+      traefik.http.routers.syncthing-secure.entrypoints: "websecure"
+      traefik.http.routers.syncthing-secure.tls: "true"
+      traefik.http.services.syncthing.loadbalancer.server.port: "8384"
       homepage.group: Utils
       homepage.name: Syncthing
       homepage.icon: syncthing.svg # https://gethomepage.dev/configs/services/#icons

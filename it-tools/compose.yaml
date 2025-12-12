@@ -9,8 +9,17 @@ services:
     #   - 127.0.0.1:80:80 # exposed though reverse proxy
     restart: ${RESTART}
     labels:
+      traefik.enable: "true"
+      traefik.http.routers.ittools.rule: "Host(`it-tools.localhost`)"
+      traefik.http.routers.ittools.entrypoints: "web"
+      traefik.http.middlewares.httpsredirect.redirectscheme.scheme: "https"
+      traefik.http.middlewares.httpsredirect.redirectscheme.permanent: "true"
+      traefik.http.routers.ittools.middlewares: "httpsredirect"
+      traefik.http.routers.ittools-secure.rule: "Host(`it-tools.localhost`)"
+      traefik.http.routers.ittools-secure.entrypoints: "websecure"
+      traefik.http.routers.ittools-secure.tls: "true"
       homepage.group: Tools
       homepage.name: It-tools
       homepage.icon: it-tools-light.svg # https://gethomepage.dev/configs/services/#icons
-      homepage.href: "https://it-tools.localhost/" # through nginx proxy
+      homepage.href: "https://it-tools.localhost/"
       homepage.description: "Collection of tools for developers"
