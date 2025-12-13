@@ -1,0 +1,140 @@
+---
+services:
+  mitmproxy:
+    image: ${MITMPROXY_IMAGE:?mitmproxy image required}:${MITMPROXY_TAG:-latest}
+    profiles:
+      - mitmproxy-gluetun
+      - mitmproxy-webtop
+    ports: [
+      # "8181:80" # web interface
+      # "8880:8880" # transparent proxy port
+    ]
+    volumes:
+      - ./data:/home/mitmproxy/.mitmproxy
+      - ./mitmproxy/config:/home/mitmproxy/.mitmproxy
+    command:
+      - "mitmweb"
+      - "--mode=wireguard"
+      - "--web-host=0.0.0.0"
+      - "--web-port=80"
+      - "--listen-port=8880"
+      - "--set=web_password=pass"
+      - "--no-web-open-browser"
+      # - "--ssl-insecure" # disables ssl verification for upstream servers
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import socket; s=socket.socket(); s.connect((\"localhost\", 80)); s.close(); exit(0)' || exit 1"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
+      start_period: 5s
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.mitmproxy.rule: "Host(`proxy.mitm.localhost`)"
+      traefik.http.routers.mitmproxy.entrypoints: "web"
+      traefik.http.middlewares.httpsredirect.redirectscheme.scheme: "https"
+      traefik.http.middlewares.httpsredirect.redirectscheme.permanent: "true"
+      traefik.http.routers.mitmproxy.middlewares: "httpsredirect"
+      traefik.http.routers.mitmproxy-secure.rule: "Host(`proxy.mitm.localhost`)"
+      traefik.http.routers.mitmproxy-secure.entrypoints: "websecure"
+      traefik.http.routers.mitmproxy-secure.tls: "true"
+      traefik.http.services.mitmproxy.loadbalancer.server.port: "80"
+      homepage.group: Mitmproxy
+      homepage.name: Mitmproxy
+      homepage.icon: sh-mitmproxy # https://gethomepage.dev/configs/services/#icons
+      homepage.href: "https://proxy.mitm.localhost?token=pass"
+      homepage.description: "Mitmproxy web interface"
+    restart: ${RESTART_POLICY:-unless-stopped}
+
+  mitmproxy-gluetun:
+    image: ${GLUETUN_IMAGE?gluetun image required}:${GLUETUN_TAG:-latest}
+    profiles:
+      - mitmproxy-gluetun
+      - mitmproxy-webtop
+    container_name: mitmproxy-gluetun # must be set explicitly to allow external containers to connect
+    hostname: mitmproxy-gluetun
+    entrypoint: [ "/entrypoint.sh" ] # custom entrypoint to load wg0.conf secret to /gluetun/wireguard/wg0.conf
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - ./mitmproxy-gluetun/entrypoint.sh:/entrypoint.sh:ro
+    # https://github.com/qdm12/gluetun-wiki/tree/main/setup/options
+    environment:
+      VPN_SERVICE_PROVIDER: custom
+      VPN_TYPE: wireguard
+      UPDATER_PERIOD: 0
+      WIREGUARD_CONFIG_LOCATION: /run/secrets/mitmproxy-wg0.conf
+      PUBLICIP_ENABLED: "false"
+    secrets:
+      - mitmproxy-wg0.conf
+    configs:
+      - source: mitmproxy-ca-cert.pem
+        # https://stackoverflow.com/a/67232164
+        target: /usr/local/share/ca-certificates/mitmproxy-ca-cert.pem
+    ports: # Note: webtop service uses network_mode: service:gluetun, so ports have to be exposed here
+      - 127.0.0.1:3001:3001 # https desktop GUI for mitmproxy-webtop
+    restart: ${RESTART_POLICY:-unless-stopped}
+    depends_on:
+      mitmproxy:
+        condition: service_healthy
+
+  mitmproxy-webtop:
+    # https://docs.linuxserver.io/images/docker-webtop/
+    image: ${WEBTOP_IMAGE?webtop image required}:${WEBTOP_TAG:-latest}
+    platform: ${WEBTOP_ARCH:-linux/arm64}
+    entrypoint: [ "/entrypoint.sh" ]
+    profiles:
+      - mitmproxy-webtop
+    security_opt: [
+      seccomp:unconfined  # better compatibility with some hosts
+    ]
+    environment:
+      PUID: ${PUID:?user id required}
+      PGID: ${PGID:?group id required}
+      TZ: ${TZ:?timezone required}
+      # https://docs.linuxserver.io/images/docker-webtop/#options-in-all-selkies-based-gui-containers
+      TITLE: "Mitmproxy Webtop"
+      START_DOCKER: "false"
+      DOCKER_MODS: linuxserver/mods:universal-tshoot|linuxserver/mods:universal-package-install|linuxserver/mods:universal-cron
+      INSTALL_PACKAGES: apt-transport-https|ca-certificates|curl|gnupg|git|htop|btop|nano|vim
+    volumes:
+      - ./mitmproxy-webtop/entrypoint.sh:/entrypoint.sh:ro
+      - ./mitmproxy-webtop/config:/config
+      - ./mitmproxy-webtop/crontabs:/config/crontabs:ro
+      - ./mitmproxy-webtop/scripts:/config/scripts:ro
+    network_mode: service:mitmproxy-gluetun
+    shm_size: ${SHM_SIZE:-1gb}
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.mitmproxy-webtop.rule: "Host(`webtop.mitm.localhost`)"
+      traefik.http.routers.mitmproxy-webtop.entrypoints: "web"
+      traefik.http.middlewares.httpsredirect.redirectscheme.scheme: "https"
+      traefik.http.middlewares.httpsredirect.redirectscheme.permanent: "true"
+      traefik.http.routers.mitmproxy-webtop.middlewares: "httpsredirect"
+      traefik.http.routers.mitmproxy-webtop-secure.rule: "Host(`webtop.mitm.localhost`)"
+      traefik.http.routers.mitmproxy-webtop-secure.entrypoints: "websecure"
+      traefik.http.routers.mitmproxy-webtop-secure.tls: "true"
+      traefik.http.services.mitmproxy-webtop.loadbalancer.server.port: "3000"
+      homepage.group: Mitmproxy
+      homepage.name: "Mitmproxy Webtop"
+      homepage.icon: sh-webtop # https://gethomepage.dev/configs/services/#icons
+      homepage.href: "https://webtop.mitm.localhost/"
+      homepage.description: "Linux desktop in a browser via Mitmproxy"
+    configs:
+      - source: mitmproxy-ca-cert.pem
+        # https://askubuntu.com/questions/73287/how-do-i-install-a-root-certificate/94861#94861
+        target: /usr/share/ca-certificates/extra/mitmproxy-ca-cert.pem
+    restart: ${RESTART_POLICY:-unless-stopped}
+    depends_on:
+      mitmproxy-gluetun:
+        condition: service_healthy
+
+secrets:
+  mitmproxy-wg0.conf:
+    # copy Wireguard config from mitmproxy web
+    file: ./mitmproxy-gluetun/wg0.conf
+
+configs:
+  mitmproxy-ca-cert.pem:
+    file: mitmproxy/config/mitmproxy-ca-cert.pem

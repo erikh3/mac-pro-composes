@@ -1,0 +1,10 @@
+.*
+!.bashrc
+ssl/*
+!ssl/.gitkeep
+tmp-data/
+proot-apps/
+!.gitignore
+
+Downloads/
+logs/

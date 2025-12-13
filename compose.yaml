@@ -9,6 +9,7 @@ include:
   - obsidian/compose.yaml
   - webtop/compose.yaml
   - traefik/compose.yaml
+  - mitmproxy/compose.yaml
 
 networks:
   default:
