@@ -65,7 +65,7 @@ services:
       VPN_TYPE: wireguard
       UPDATER_PERIOD: 0
       WIREGUARD_CONFIG_LOCATION: /run/secrets/mitmproxy-wg0.conf
-      PUBLICIP_ENABLED: "false"
+      PUBLICIP_API: "ifconfigco"
     secrets:
       - mitmproxy-wg0.conf
     configs:
