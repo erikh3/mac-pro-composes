@@ -15,13 +15,14 @@ else
 fi
 
 # Update ca certificates
-# https://stackoverflow.com/a/67232164
-if [ -f /usr/local/share/ca-certificates/mitmproxy-ca-cert.pem ]; then
+MITMPROXY_CERT_PATH="/usr/local/share/ca-certificates/mitmproxy-ca-cert.pem"
+if [ -f "$MITMPROXY_CERT_PATH" ]; then
     echo "Adding mitmproxy CA certificate to trusted certificates..."
-    # todo
-    cat /usr/local/share/ca-certificates/mitmproxy-ca-cert.pem >> /etc/ssl/certs/ca-certificates.crt
-    apk --no-cache add
+    update-ca-certificates
+else
+    echo "mitmproxy CA certificate not found at $MITMPROXY_CERT_PATH, skipping."
 fi
 
 # Execute the original entrypoint
+echo "Executing original entrypoint: /gluetun-entrypoint $@"
 exec /gluetun-entrypoint "$@"
