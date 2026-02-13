@@ -10,6 +10,7 @@ include:
   - webtop/compose.yaml
   - traefik/compose.yaml
   - mitmproxy/compose.yaml
+  - kali/compose.yaml
 
 networks:
   default:

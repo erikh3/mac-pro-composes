@@ -1,0 +1,18 @@
+---
+services:
+  kali:
+    # https://hub.docker.com/r/linuxserver/kali-linux
+    image: ${IMAGE:-lscr.io/linuxserver/kali-linux}:${TAG:-latest}
+    profiles:
+      - kali
+    environment:
+      PUID: ${PUID:?user id required}
+      PGID: ${PGID:?group id required}
+      TZ: ${TZ:?timezone required}
+    volumes:
+      - ./kali/config:/config
+    ports:
+      - 3000:3000
+      - 3001:3001
+    shm_size: "1gb"
+    restart: ${RESTART_POLICY:-unless-stopped}
