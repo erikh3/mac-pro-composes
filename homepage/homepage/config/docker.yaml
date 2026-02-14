@@ -5,6 +5,6 @@
 local-docker:
   socket: /var/run/docker-proxy/docker.sock
 
-local-podman:
-  socket: /var/run/podman-proxy/docker.sock
+# local-podman:
+#   socket: /var/run/podman-proxy/docker.sock
 
