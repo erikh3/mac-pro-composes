@@ -43,12 +43,13 @@ services:
       traefik.http.routers.firefox-secure.rule: "Host(`firefox.localhost`)"
       traefik.http.routers.firefox-secure.entrypoints: "websecure"
       traefik.http.routers.firefox-secure.tls: "true"
+      traefik.http.routers.firefox-secure.tls.options: "requireClientCert@file"
       traefik.http.services.firefox.loadbalancer.server.port: "3000"
       homepage.group: Utils
       homepage.name: ${TITLE}
       homepage.icon: firefox.svg # https://gethomepage.dev/configs/services/#icons
-      # homepage.href: "https://firefox.localhost/" # through nginx proxy
-      homepage.href: "https://127.0.0.1:${HOST_PORT:-3001}/" # direct access
+      # homepage.href: "https://firefox.localhost/" # through reverse proxy (traefik/nginx), worse performance
+      homepage.href: "https://127.0.0.1:${HOST_PORT:-3001}/" # direct access, better performance
       homepage.description: "Firefox browser"
 
 volumes:

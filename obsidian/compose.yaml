@@ -45,11 +45,12 @@ services:
       traefik.http.routers.obsidian-secure.rule: "Host(`obsidian.localhost`)"
       traefik.http.routers.obsidian-secure.entrypoints: "websecure"
       traefik.http.routers.obsidian-secure.tls: "true"
+      traefik.http.routers.obsidian-secure.tls.options: "requireClientCert@file"
       traefik.http.services.obsidian.loadbalancer.server.port: "3000"
       homepage.group: Tools
       homepage.name: Obsidian
       homepage.icon: obsidian.svg # https://gethomepage.dev/configs/services/#icons
-      homepage.href: "https://localhost:${HOST_PORT:-3001}/"
+      homepage.href: "https://localhost:${HOST_PORT:-3001}/"  # direct access, better performance
       homepage.description: "Personal knowledge data lake"
     depends_on:
       - syncthing
@@ -72,6 +73,7 @@ services:
       traefik.http.routers.syncthing-secure.rule: "Host(`syncthing.localhost`)"
       traefik.http.routers.syncthing-secure.entrypoints: "websecure"
       traefik.http.routers.syncthing-secure.tls: "true"
+      traefik.http.routers.syncthing-secure.tls.options: "requireClientCert@file"
       traefik.http.services.syncthing.loadbalancer.server.port: "8384"
       homepage.group: Utils
       homepage.name: Syncthing

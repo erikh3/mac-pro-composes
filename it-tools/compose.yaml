@@ -18,6 +18,7 @@ services:
       traefik.http.routers.ittools-secure.rule: "Host(`it-tools.localhost`)"
       traefik.http.routers.ittools-secure.entrypoints: "websecure"
       traefik.http.routers.ittools-secure.tls: "true"
+      traefik.http.routers.ittools-secure.tls.options: "requireClientCert@file"
       homepage.group: Tools
       homepage.name: It-tools
       homepage.icon: it-tools-light.svg # https://gethomepage.dev/configs/services/#icons
