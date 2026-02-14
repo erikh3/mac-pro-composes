@@ -9,6 +9,7 @@ services:
       - traefik-debug
     environment:
       TZ: Europe/Prague # https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List
+    entrypoint: "/entrypoint-custom.sh"
     command:  # exec into teraefik container & run `traefik --help` to see all available options
       - "--log.level=DEBUG"
       - "--accesslog.filePath=/logs/access.log"
@@ -41,10 +42,13 @@ services:
       - 127.0.0.1:80:80
       - 127.0.0.1:443:443
     volumes:
-      - docker-socket-proxy:/var/run/docker-proxy # mount the docker socket proxy
-      - ./service-certs:/config/service-certs:ro
-      - ./traefik/dynamic.yml:/config/traefik/dynamic.yml:ro
+      - ./entrypoint-custom.sh:/entrypoint-custom.sh:ro # customized entrypoint, workaround for post_start which does not work :(
+      - ./config/templates:/config/templates:ro # the configuration templates
+      - ./ca-certs:/config/ca-certs:ro  # certificate authority certs
+      - ./service-certs:/config/service-certs:ro  # server certs for https
+      - ./config/traefik/tls.yml:/config/traefik/tls.yml:ro # default tls config
       - ./logs:/logs
+      - docker-socket-proxy:/var/run/docker-proxy # mount the docker socket proxy
     restart: ${RESTART_POLICY:-unless-stopped}
 
   # Simple service to test Traefik routing

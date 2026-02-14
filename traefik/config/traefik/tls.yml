@@ -1,0 +1,11 @@
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /config/service-certs/localhost.pem
+        keyFile: /config/service-certs/localhost.key
+  # certificate client auth
+  # https://doc.traefik.io/traefik/reference/routing-configuration/http/tls/tls-options/#client-authentication-mtls
+  options:
+    default:
+      minVersion: VersionTLS12

@@ -1,0 +1,11 @@
+tls:
+  # certificate client auth
+  # https://doc.traefik.io/traefik/reference/routing-configuration/http/tls/tls-options/#client-authentication-mtls
+  options:
+    # requires client certificate signed by configured CA
+    # to use this add label: traefik.http.routers.ittools-secure.tls.options: "requireClientCert@file"
+    requireClientCert:
+      minVersion: VersionTLS12
+      clientAuth:
+        caFiles: ${cert_files_yaml_list}
+        clientAuthType: RequireAndVerifyClientCert
