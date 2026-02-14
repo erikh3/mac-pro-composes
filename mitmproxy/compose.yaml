@@ -5,10 +5,9 @@ services:
     profiles:
       - mitmproxy-gluetun
       - mitmproxy-webtop
-    ports: [
-      # "8181:80" # web interface
-      # "8880:8880" # transparent proxy port
-    ]
+    # ports:
+      # - "8181:80" # web interface
+      # - "8880:8880" # transparent proxy port
     volumes:
       - ./data:/home/mitmproxy/.mitmproxy
       - ./mitmproxy/config:/home/mitmproxy/.mitmproxy
@@ -31,9 +30,6 @@ services:
       traefik.enable: "true"
       traefik.http.routers.mitmproxy.rule: "Host(`proxy.mitm.localhost`)"
       traefik.http.routers.mitmproxy.entrypoints: "web"
-      traefik.http.middlewares.httpsredirect.redirectscheme.scheme: "https"
-      traefik.http.middlewares.httpsredirect.redirectscheme.permanent: "true"
-      traefik.http.routers.mitmproxy.middlewares: "httpsredirect"
       traefik.http.routers.mitmproxy-secure.rule: "Host(`proxy.mitm.localhost`)"
       traefik.http.routers.mitmproxy-secure.entrypoints: "websecure"
       traefik.http.routers.mitmproxy-secure.tls: "true"
@@ -109,9 +105,6 @@ services:
       traefik.enable: "true"
       traefik.http.routers.mitmproxy-webtop.rule: "Host(`webtop.mitm.localhost`)"
       traefik.http.routers.mitmproxy-webtop.entrypoints: "web"
-      traefik.http.middlewares.httpsredirect.redirectscheme.scheme: "https"
-      traefik.http.middlewares.httpsredirect.redirectscheme.permanent: "true"
-      traefik.http.routers.mitmproxy-webtop.middlewares: "httpsredirect"
       traefik.http.routers.mitmproxy-webtop-secure.rule: "Host(`webtop.mitm.localhost`)"
       traefik.http.routers.mitmproxy-webtop-secure.entrypoints: "websecure"
       traefik.http.routers.mitmproxy-webtop-secure.tls: "true"
