@@ -1,0 +1,21 @@
+# custom error page redirect for all services
+http:
+  middlewares:
+    caterrors:
+      chain:
+        middlewares:
+          - http_cat_error_page
+
+    http_cat_error_page:
+      errors:
+        status:
+          - "400-499"
+          - "500-599"
+        service: httpcat_local
+        query: /{status}.jpg
+
+  services:
+    httpcat_local:
+      loadBalancer:
+        servers:
+          - url: http://httpcat # httpcat service

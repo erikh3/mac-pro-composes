@@ -16,13 +16,23 @@ services:
       - "--api.insecure=false"  # dashboard exported through https (check this service labels)
       - "--api.dashboard=true"
       - "--api.disabledashboardad=true"
+      # docker provider
       - "--providers.docker=true"
       - "--providers.docker.endpoint=unix:///var/run/docker-proxy/docker.sock"
       - "--providers.docker.exposedbydefault=false"
+      # file provider
       - "--providers.file.directory=/config/traefik"
       - "--providers.file.watch=true"
+      # http entrypoint
       - "--entryPoints.web.address=:80"
+      - "--entryPoints.web.http.middlewares=caterrors@file"
+      # http redirect for all
+      - "--entryPoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entryPoints.web.http.redirections.entryPoint.permanent=true"
+      # https entrypoint
       - "--entryPoints.websecure.address=:443"
+      - "--entryPoints.websecure.http.middlewares=caterrors@file"
     labels:
       traefik.enable: "true"
       traefik.http.routers.dashboard.rule: "Host(`traefik.localhost`)"
@@ -42,13 +52,26 @@ services:
       - 127.0.0.1:80:80
       - 127.0.0.1:443:443
     volumes:
-      - ./entrypoint-custom.sh:/entrypoint-custom.sh:ro # customized entrypoint, workaround for post_start which does not work :(
-      - ./config/templates:/config/templates:ro # the configuration templates
-      - ./ca-certs:/config/ca-certs:ro  # certificate authority certs
-      - ./service-certs:/config/service-certs:ro  # server certs for https
-      - ./config/traefik/tls.yml:/config/traefik/tls.yml:ro # default tls config
-      - ./logs:/logs
+      - ./traefik/entrypoint-custom.sh:/entrypoint-custom.sh:ro # customized entrypoint, workaround for post_start which does not work :(
+      - ./traefik/config/templates:/config/templates:ro # the configuration templates
+      - ./traefik/ca-certs:/config/ca-certs:ro  # certificate authority certs
+      - ./traefik/service-certs:/config/service-certs:ro  # server certs for https
+      # Traefik does not support watching multiple config directories
+      # Refactor once PR is merged: https://github.com/traefik/traefik/issues/11512
+      - ./traefik/config/traefik/tls.yaml:/config/traefik/tls.yaml:ro
+      - ./traefik/config/traefik/error_pages.yaml:/config/traefik/error_pages.yaml:ro
+      - ./traefik/logs:/logs
       - docker-socket-proxy:/var/run/docker-proxy # mount the docker socket proxy
+    restart: ${RESTART_POLICY:-unless-stopped}
+
+  # http.cat error pages running localy
+  httpcat:
+    build:
+      context: http.cats
+      dockerfile: Containerfile
+    profiles:
+      - traefik
+      - traefik-debug
     restart: ${RESTART_POLICY:-unless-stopped}
 
   # Simple service to test Traefik routing
