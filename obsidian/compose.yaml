@@ -28,6 +28,7 @@ services:
       - &datamount syncthing-data:/config/data
       # use with put_obsidian.zsh script to copy any files from host to obsidian vault
       - ./obsidian/to-obsidian:/media/to-config-data
+      - ./obsidian/scripts/obsidian-cli.sh:/usr/local/bin/obsidian:ro
     secrets:
       - obsidian-basic-auth-user
       - obsidian-basic-auth-password
@@ -50,6 +51,12 @@ services:
       homepage.icon: obsidian.svg # https://gethomepage.dev/configs/services/#icons
       homepage.href: "https://localhost:${HOST_PORT:-3001}/"  # direct access, better performance
       homepage.description: "Personal knowledge data lake"
+    healthcheck:
+      test: ["CMD", "obsidian", "version"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
     depends_on:
       - syncthing
 
