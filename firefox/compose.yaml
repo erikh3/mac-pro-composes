@@ -19,6 +19,7 @@ services:
       FILE__CUSTOM_USER: /run/secrets/firefox-basic-auth-user
       FILE__PASSWORD: /run/secrets/firefox-basic-auth-password
       DOCKER_MODS: linuxserver/mods:universal-cron # enables cron jobs from ./firefox/crontabs
+      PIXELFLUX_WAYLAND: "false" # disable pixelflux Wayland capture (panics on Docker Desktop kernel)
     volumes:
       - ./firefox/config:/config
       - ./firefox/crontabs:/config/crontabs:ro
