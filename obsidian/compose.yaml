@@ -27,7 +27,7 @@ services:
       - ./obsidian/config:/config
       - &datamount syncthing-data:/config/data
       # use with put_obsidian.zsh script to copy any files from host to obsidian vault
-      - ./obsidian/to-obsidian:/media/to-config-data
+      - ./obsidian/to-obsidian:/media/to-config-data:ro
       - ./obsidian/scripts/obsidian-cli.sh:/usr/local/bin/obsidian:ro
     secrets:
       - obsidian-basic-auth-user
