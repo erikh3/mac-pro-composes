@@ -22,6 +22,7 @@ services:
       START_DOCKER: ${START_DOCKER}
       FILE__CUSTOM_USER: /run/secrets/obsidian-basic-auth-user
       FILE__PASSWORD: /run/secrets/obsidian-basic-auth-password
+      PIXELFLUX_WAYLAND: "false" # disable pixelflux Wayland capture (panics on Docker Desktop kernel)
     volumes:
       - ./obsidian/config:/config
       - &datamount syncthing-data:/config/data
