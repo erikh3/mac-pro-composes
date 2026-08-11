@@ -21,12 +21,15 @@ services:
       DOCKER_MODS: linuxserver/mods:universal-cron # enables cron jobs from ./firefox/crontabs
       PIXELFLUX_WAYLAND: "false" # disable pixelflux Wayland capture (panics on Docker Desktop kernel)
     volumes:
-      - ./firefox/config:/config
+      # use volume for every in config
+      - firefox-config:/config
+      # - ./firefox/config:/config
       - ./firefox/crontabs:/config/crontabs:ro
       - ./firefox/scripts:/config/scripts:ro
       # keep firefox profile data out of host filesystem
-      - mozilla-data:/config/.mozilla # firefox profile data
-      - mozilla-cache:/config/.cache/mozilla/ # firefox cache
+      # idk, just doesnt work when we split dire like this - complains about missing profile
+      # - mozilla-data:/config/.mozilla # firefox profile data
+      # - mozilla-cache:/config/.cache/mozilla/ # firefox cache
     secrets:
       - firefox-basic-auth-user
       - firefox-basic-auth-password
@@ -51,8 +54,10 @@ services:
       homepage.description: "Firefox browser"
 
 volumes:
-  mozilla-data:
-  mozilla-cache:
+  # disable for now
+  # mozilla-data:
+  # mozilla-cache:
+  firefox-config:
 
 secrets:
   firefox-basic-auth-user:
