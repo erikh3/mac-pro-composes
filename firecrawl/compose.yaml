@@ -88,8 +88,8 @@ services:
         soft: 65535
         hard: 65535
     cpus: ${FIRECRAWL_API_CPUS:-2.0}
-    mem_limit: ${FIRECRAWL_API_MEM:-4G}
-    memswap_limit: ${FIRECRAWL_API_MEM:-4G}
+    mem_limit: ${FIRECRAWL_API_MEM:-3G}
+    memswap_limit: ${FIRECRAWL_API_MEM:-3G}
     depends_on:
       firecrawl-redis:
         condition: service_started
@@ -218,11 +218,14 @@ networks:
     driver: bridge
 
 secrets:
-  # Files under ${FIRECRAWL_SECRETS_BASE_DIR}. postgres-password is required;
-  # the optional provider secrets may be empty files (feature disabled).
+  # postgres-password is a required file under ${FIRECRAWL_SECRETS_BASE_DIR}.
   firecrawl-postgres-password:
     file: ${FIRECRAWL_SECRETS_BASE_DIR}/postgres-password
+  # Optional provider secrets are sourced from environment variables, so no
+  # files need to exist. Unset -> empty secret -> entrypoint skips it (feature
+  # off). To enable, export the var (e.g. `OPENAI_API_KEY=sk-... docker compose
+  # --profile firecrawl up -d`); the value is never written to a tracked file.
   firecrawl-openai-api-key:
-    file: ${FIRECRAWL_SECRETS_BASE_DIR}/openai-api-key
+    environment: OPENAI_API_KEY
   firecrawl-proxy-password:
-    file: ${FIRECRAWL_SECRETS_BASE_DIR}/proxy-password
+    environment: PROXY_PASSWORD

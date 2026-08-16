@@ -4,9 +4,10 @@
 use_default_settings: true
 
 server:
-  # Session/CSRF signing key. Internal-only instance; change if you like.
-  secret_key: "firecrawl-searxng-internal-change-me"
-  # Disable the bot limiter so Firecrawl can query without being throttled.
+  # Session/CSRF signing key. Safe as a static value here: this SearXNG has no
+  # published port and lives only on the private `firecrawl` network, reachable
+  # solely by firecrawl-api (no browser users, no external/localhost access).
+  secret_key: "firecrawl-searxng-internal"
   limiter: false
   image_proxy: false
   method: "GET"

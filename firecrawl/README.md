@@ -24,52 +24,34 @@ bridge network. Only `firecrawl-api` is published and also joins the shared
 | `firecrawl-rabbitmq` | `rabbitmq:3-management` | NuQ queue transport |
 | `firecrawl-nuq-postgres` | `ghcr.io/firecrawl/nuq-postgres` | NuQ queue backend (bundles `pg_cron`) |
 
-### Why all of these?
-
-Current Firecrawl (v2.11, NuQ architecture) **requires** the api + redis +
-rabbitmq + nuq-postgres core — every endpoint (scrape/crawl/search) flows
-through the NuQ queue, which is RabbitMQ (transport) + Postgres (state) + Redis
-(cache). There is no redis-only mode anymore, and `nuq-postgres` is a custom
-image bundling `pg_cron` and the NuQ schema (vanilla `postgres` will not work
-without manual setup). `playwright` is the JS-rendering engine (plain HTTP fetch
-is the weaker fallback). `searxng` is needed because self-hosted `/search`
-otherwise defaults to a provider that gets IP-banned quickly.
-
 ## Image pinning
 
 The `firecrawl` (api) image publishes semver tags and is pinned via
 `FIRECRAWL_TAG` (default `2.11.202`). The `playwright-service` and `nuq-postgres`
-images publish **only `latest`** (no semver), matching upstream's own compose
-image references. For reference, their `latest` digests at the time of writing:
-
-- `playwright-service`: `sha256:468009bae00911d40d7120d58489a1d529362c22c45585cb9076094fe61b0025`
-- `nuq-postgres`: `sha256:aed86f62858f29bd971abddcdeb301c12888098d2cf5d33c1ba42b053bc460f6`
+images publish only `latest` (no semver), matching upstream's own compose image
+references.
 
 ## Setup
 
-### 1. Create the secrets
+### 1. Create the postgres secret
 
-Secrets are loaded from files via docker `secrets:` and mapped to environment
-variables by [`entrypoint.sh`](entrypoint.sh) (same pattern as the gluetun
-wireguard entrypoint). They live under
-`~/.config/custom/mac-pro-composes/firecrawl/secrets`.
+Only one secret file is required. It is loaded via docker `secrets:` and mapped
+to an environment variable by [`entrypoint.sh`](entrypoint.sh), and lives under
+`~/.config/custom/mac-pro-composes/firecrawl/secrets`:
 
 ```shell
 mkdir -p ~/.config/custom/mac-pro-composes/firecrawl/secrets
-cd $_
-# required: a real password (32+ random chars recommended)
-printf 'change-me-to-32-plus-random-characters' > postgres-password
-# optional providers: create empty (disabled) or fill in to enable
-touch openai-api-key    # OpenAI-compatible / Ollama API key (for /extract)
-touch proxy-password    # authenticated outbound scraping proxy password
+openssl rand -hex 32 > ~/.config/custom/mac-pro-composes/firecrawl/secrets/postgres-password
 ```
 
-All three secret files must exist (empty = feature disabled) because compose
-references them. Fill `openai-api-key` / `proxy-password` only if you use those
-features, alongside the non-secret settings in [`llm.env`](llm.env) /
-[`proxy.env`](proxy.env).
+Optional provider secrets (OpenAI/Ollama key, proxy password) are sourced from
+environment variables — **no files needed**. Leave them unset to disable; see
+[Optional: LLM extraction](#optional-llm-extraction) to enable.
 
 ### 2. Run
+
+Run all compose commands from the **repo root** (where the top-level
+`compose.yaml` lives), not from `firecrawl/`.
 
 The stack is **opt-in** — it is not in the repo's default `COMPOSE_PROFILES`, so
 `docker compose up -d` alone does not start it.
@@ -112,20 +94,35 @@ dummy API key, since auth is disabled).
 ## Optional: LLM extraction
 
 Core scrape/crawl/map/search need no model. `/extract` and LLM-structured
-formats need an OpenAI-compatible endpoint or Ollama: uncomment settings in
-[`llm.env`](llm.env) and put the key in the `openai-api-key` secret. Screenshots
-and page actions require Fire-engine (not included).
+formats need an OpenAI-compatible endpoint or Ollama:
+
+1. Uncomment the non-secret settings (base URL, model) in [`llm.env`](llm.env).
+2. Provide the key as an environment variable when starting the stack — it is
+   mounted as a docker secret, never written to a tracked file:
+
+   ```shell
+   OPENAI_API_KEY=sk-... docker compose --profile firecrawl up -d
+   ```
+
+Screenshots and page actions require Fire-engine (not included).
+
+## Optional: outbound proxy
+
+Uncomment the non-secret settings in [`proxy.env`](proxy.env); supply the
+password the same way as the LLM key: `PROXY_PASSWORD=... docker compose
+--profile firecrawl up -d`.
 
 ## Notes
 
 - **No persistence.** Redis/RabbitMQ/Postgres run without volumes; in-flight
   async crawl state is lost on restart. Scrape/search responses are returned to
   the caller regardless.
-- **Resources.** Defaults reserve up to `FIRECRAWL_API_MEM` (3G) +
-  `PLAYWRIGHT_MEM` (1G). Lower `PLAYWRIGHT_CPUS` to `0.5` for minimal use
-  (slower JS rendering). Ensure the Docker Desktop VM has enough RAM.
-- **Proxy.** Non-secret proxy settings apply to both api and playwright; the
-  proxy password secret is wired on the api.
-- Upgrade by bumping `FIRECRAWL_TAG` after reviewing the target release's
+- **Resources.** Defaults reserve `FIRECRAWL_API_MEM` (3G) + `PLAYWRIGHT_MEM`
+  (1G), plus ~1G for the sidecars. Verified to boot + scrape + search on this
+  machine's ~6.3 GiB Docker VM with `NUQ_WORKER_COUNT=1`, but that VM is shared
+  with the other stacks — raise the Docker Desktop memory allocation if you run
+  them together or hit OOM (harness workers exit with code 137). `NUQ_WORKER_COUNT`
+  is the main lever: it drops the harness from ~10 node processes to ~6.
+- **Upgrade** by bumping `FIRECRAWL_TAG` after reviewing the target release's
   [`docker-compose.yaml`](https://github.com/firecrawl/firecrawl/blob/main/docker-compose.yaml)
   and [self-host guide](https://docs.firecrawl.dev/contributing/self-host).
