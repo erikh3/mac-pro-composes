@@ -11,6 +11,7 @@ include:
   - traefik/compose.yaml
   - mitmproxy/compose.yaml
   - kali/compose.yaml
+  - firecrawl/compose.yaml
 
 networks:
   default:

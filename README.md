@@ -48,6 +48,19 @@ Enable profiles explicitly:
 docker compose --profile webtop up -d
 ```
 
+### Firecrawl (AI-agent web scraping)
+
+The opt-in `firecrawl` profile self-hosts [Firecrawl](https://github.com/firecrawl/firecrawl)
+for use by AI agents. It is **not** in the default `COMPOSE_PROFILES`, so it only
+starts when its profile is set:
+
+```shell
+docker compose --profile firecrawl up -d
+```
+
+The API is then available (unauthenticated, trusted-local) at
+`http://localhost:3002`. See [`firecrawl/README.md`](firecrawl/README.md).
+
 ## Updating
 
 Pull new image. Check in `.env` for particular image name.

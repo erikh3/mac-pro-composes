@@ -1,0 +1,169 @@
+---
+# Self-hosted Firecrawl (https://github.com/firecrawl/firecrawl)
+# Image-based mirror of the upstream v2.11.x self-host compose, trimmed to the
+# PostgreSQL (NuQ) queue backend. FoundationDB backend is intentionally omitted.
+#
+# Only `firecrawl-api` is published (127.0.0.1:${HOST_PORT}) and joins the shared
+# `mac-pro-composes` network; every dependency stays on the private `firecrawl`
+# bridge. All services are gated behind the `firecrawl` compose profile.
+x-refs:
+  logging: &logging
+    driver: "json-file"
+    options:
+      max-size: "10m"
+      max-file: "3"
+      compress: "true"
+
+  # Shared by api + its in-process workers. Hostnames resolve on the private net.
+  common-env: &common-env
+    REDIS_URL: redis://firecrawl-redis:6379
+    REDIS_RATE_LIMIT_URL: redis://firecrawl-redis:6379
+    PLAYWRIGHT_MICROSERVICE_URL: http://firecrawl-playwright:3000/scrape
+    POSTGRES_HOST: firecrawl-nuq-postgres
+    POSTGRES_PORT: "5432"
+    POSTGRES_USER: ${POSTGRES_USER:-postgres}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?postgres password required}
+    POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    USE_DB_AUTHENTICATION: ${USE_DB_AUTHENTICATION:-false}
+    NUM_WORKERS_PER_QUEUE: ${NUM_WORKERS_PER_QUEUE:-8}
+    CRAWL_CONCURRENT_REQUESTS: ${CRAWL_CONCURRENT_REQUESTS:-10}
+    MAX_CONCURRENT_JOBS: ${MAX_CONCURRENT_JOBS:-5}
+    BROWSER_POOL_SIZE: ${BROWSER_POOL_SIZE:-5}
+    LOGGING_LEVEL: ${LOGGING_LEVEL:-INFO}
+    # Optional LLM provider for /extract + structured formats. Unset by default;
+    # core scrape/crawl/map/search do not need these.
+    OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+    MODEL_NAME: ${MODEL_NAME:-}
+    MODEL_EMBEDDING_NAME: ${MODEL_EMBEDDING_NAME:-}
+    OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
+    # Optional outbound proxy for scraping.
+    PROXY_SERVER: ${PROXY_SERVER:-}
+    PROXY_USERNAME: ${PROXY_USERNAME:-}
+    PROXY_PASSWORD: ${PROXY_PASSWORD:-}
+
+services:
+  # Firecrawl API + in-process workers (harness spawns worker/extract-worker).
+  firecrawl-api:
+    image: ${FIRECRAWL_IMAGE:-ghcr.io/firecrawl/firecrawl}:${FIRECRAWL_TAG:-2.11.202}
+    profiles:
+      - firecrawl
+    command: node dist/src/harness.js --start-docker
+    environment:
+      <<: *common-env
+      HOST: "0.0.0.0"
+      PORT: ${INTERNAL_PORT:-3002}
+      EXTRACT_WORKER_PORT: "3004"
+      WORKER_PORT: "3005"
+      NUQ_RABBITMQ_URL: amqp://firecrawl-rabbitmq:5672
+      HARNESS_STARTUP_TIMEOUT_MS: ${HARNESS_STARTUP_TIMEOUT_MS:-60000}
+      ENV: local
+    ports:
+      - 127.0.0.1:${HOST_PORT:-3002}:${INTERNAL_PORT:-3002} # consumed by AI agents (MCP/CLI/SDK)
+    networks:
+      - firecrawl # reach redis/rabbitmq/postgres/playwright
+      - default # shared mac-pro-composes net, so other stacks can reach firecrawl-api
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # reach host services (e.g. local Ollama)
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    cpus: ${FIRECRAWL_API_CPUS:-4.0}
+    mem_limit: ${FIRECRAWL_API_MEM:-8G}
+    memswap_limit: ${FIRECRAWL_API_MEM:-8G}
+    depends_on:
+      firecrawl-redis:
+        condition: service_started
+      firecrawl-playwright:
+        condition: service_started
+      firecrawl-rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://localhost:${INTERNAL_PORT:-3002}/v0/health/readiness',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: ${RESTART:-unless-stopped}
+    logging: *logging
+
+  # Headless-browser rendering microservice.
+  firecrawl-playwright:
+    image: ${PLAYWRIGHT_IMAGE:-ghcr.io/firecrawl/playwright-service}:${PLAYWRIGHT_TAG:-latest}
+    profiles:
+      - firecrawl
+    environment:
+      PORT: "3000"
+      MAX_CONCURRENT_PAGES: ${CRAWL_CONCURRENT_REQUESTS:-10}
+      PROXY_SERVER: ${PROXY_SERVER:-}
+      PROXY_USERNAME: ${PROXY_USERNAME:-}
+      PROXY_PASSWORD: ${PROXY_PASSWORD:-}
+      BLOCK_MEDIA: ${BLOCK_MEDIA:-}
+      ALLOW_LOCAL_WEBHOOKS: ${ALLOW_LOCAL_WEBHOOKS:-}
+    networks:
+      - firecrawl
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cpus: ${PLAYWRIGHT_CPUS:-2.0}
+    mem_limit: ${PLAYWRIGHT_MEM:-4G}
+    memswap_limit: ${PLAYWRIGHT_MEM:-4G}
+    tmpfs:
+      - /tmp/.cache:noexec,nosuid,size=1g
+    restart: ${RESTART:-unless-stopped}
+    logging: *logging
+
+  # Cache + rate-limit store.
+  firecrawl-redis:
+    image: ${REDIS_IMAGE:-redis}:${REDIS_TAG:-alpine}
+    profiles:
+      - firecrawl
+    command: redis-server --bind 0.0.0.0
+    networks:
+      - firecrawl
+    restart: ${RESTART:-unless-stopped}
+    logging: *logging
+
+  # Job-queue transport for the NuQ backend.
+  firecrawl-rabbitmq:
+    image: ${RABBITMQ_IMAGE:-rabbitmq}:${RABBITMQ_TAG:-3-management}
+    profiles:
+      - firecrawl
+    command: rabbitmq-server
+    networks:
+      - firecrawl
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: ${RESTART:-unless-stopped}
+    logging: *logging
+
+  # NuQ PostgreSQL queue backend (custom image bundling pg_cron).
+  firecrawl-nuq-postgres:
+    image: ${NUQ_POSTGRES_IMAGE:-ghcr.io/firecrawl/nuq-postgres}:${NUQ_POSTGRES_TAG:-latest}
+    profiles:
+      - firecrawl
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?postgres password required}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    networks:
+      - firecrawl
+    restart: ${RESTART:-unless-stopped}
+    logging: *logging
+
+networks:
+  # Private bridge (plain bridge, NOT internal: playwright/api need outbound
+  # internet to scrape). `default` is the shared external mac-pro-composes net
+  # declared in the root compose.
+  firecrawl:
+    driver: bridge
