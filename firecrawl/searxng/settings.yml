@@ -1,0 +1,20 @@
+# SearXNG settings for the bundled Firecrawl /search provider.
+# https://docs.searxng.org/admin/settings/index.html
+# Internal-only instance (private `firecrawl` network, no host port exposed).
+use_default_settings: true
+
+server:
+  # Session/CSRF signing key. Internal-only instance; change if you like.
+  secret_key: "firecrawl-searxng-internal-change-me"
+  # Disable the bot limiter so Firecrawl can query without being throttled.
+  limiter: false
+  image_proxy: false
+  method: "GET"
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  # Firecrawl queries the JSON API; it is disabled by default and must be enabled.
+  formats:
+    - html
+    - json

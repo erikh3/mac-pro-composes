@@ -1,11 +1,21 @@
 ---
-# Self-hosted Firecrawl (https://github.com/firecrawl/firecrawl)
-# Image-based mirror of the upstream v2.11.x self-host compose, trimmed to the
-# PostgreSQL (NuQ) queue backend. FoundationDB backend is intentionally omitted.
+# Self-hosted Firecrawl (https://github.com/firecrawl/firecrawl) for AI agents.
 #
-# Only `firecrawl-api` is published (127.0.0.1:${HOST_PORT}) and joins the shared
-# `mac-pro-composes` network; every dependency stays on the private `firecrawl`
-# bridge. All services are gated behind the `firecrawl` compose profile.
+# Image-based mirror of the upstream v2.11.x self-host compose, trimmed to the
+# PostgreSQL (NuQ) queue backend, plus a bundled SearXNG so /search works.
+# The FoundationDB queue backend is intentionally omitted.
+#
+# The NuQ queue architecture requires api + redis + rabbitmq + nuq-postgres;
+# playwright is the JS-rendering engine; searxng is the /search provider.
+#
+# Only `firecrawl-api` is published (127.0.0.1:${HOST_PORT}) and also joins the
+# shared `mac-pro-composes` network. Every dependency stays on the private
+# `firecrawl` bridge. All services are gated behind the `firecrawl` profile.
+#
+# Secrets are loaded from files via docker `secrets:` and mapped to environment
+# variables by ./firecrawl/entrypoint.sh (see the wireguard/gluetun entrypoint
+# for the same pattern). Optional LLM/proxy provider settings live in the
+# optional ./firecrawl/llm.env and ./firecrawl/proxy.env files.
 x-refs:
   logging: &logging
     driver: "json-file"
@@ -14,40 +24,36 @@ x-refs:
       max-file: "3"
       compress: "true"
 
-  # Shared by api + its in-process workers. Hostnames resolve on the private net.
+  # Non-secret env shared by the api + its in-process workers.
+  # Hostnames resolve on the private `firecrawl` network.
   common-env: &common-env
     REDIS_URL: redis://firecrawl-redis:6379
     REDIS_RATE_LIMIT_URL: redis://firecrawl-redis:6379
     PLAYWRIGHT_MICROSERVICE_URL: http://firecrawl-playwright:3000/scrape
+    SEARXNG_ENDPOINT: http://firecrawl-searxng:8080
+    SEARXNG_ENGINES: ${SEARXNG_ENGINES:-}
+    SEARXNG_CATEGORIES: ${SEARXNG_CATEGORIES:-}
     POSTGRES_HOST: firecrawl-nuq-postgres
     POSTGRES_PORT: "5432"
     POSTGRES_USER: ${POSTGRES_USER:-postgres}
-    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?postgres password required}
     POSTGRES_DB: ${POSTGRES_DB:-postgres}
     USE_DB_AUTHENTICATION: ${USE_DB_AUTHENTICATION:-false}
-    NUM_WORKERS_PER_QUEUE: ${NUM_WORKERS_PER_QUEUE:-8}
-    CRAWL_CONCURRENT_REQUESTS: ${CRAWL_CONCURRENT_REQUESTS:-10}
-    MAX_CONCURRENT_JOBS: ${MAX_CONCURRENT_JOBS:-5}
-    BROWSER_POOL_SIZE: ${BROWSER_POOL_SIZE:-5}
+    NUQ_WORKER_COUNT: ${NUQ_WORKER_COUNT:-1}
+    NUM_WORKERS_PER_QUEUE: ${NUM_WORKERS_PER_QUEUE:-2}
+    CRAWL_CONCURRENT_REQUESTS: ${CRAWL_CONCURRENT_REQUESTS:-3}
+    MAX_CONCURRENT_JOBS: ${MAX_CONCURRENT_JOBS:-2}
+    BROWSER_POOL_SIZE: ${BROWSER_POOL_SIZE:-2}
     LOGGING_LEVEL: ${LOGGING_LEVEL:-INFO}
-    # Optional LLM provider for /extract + structured formats. Unset by default;
-    # core scrape/crawl/map/search do not need these.
-    OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-    OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
-    MODEL_NAME: ${MODEL_NAME:-}
-    MODEL_EMBEDDING_NAME: ${MODEL_EMBEDDING_NAME:-}
-    OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-}
-    # Optional outbound proxy for scraping.
-    PROXY_SERVER: ${PROXY_SERVER:-}
-    PROXY_USERNAME: ${PROXY_USERNAME:-}
-    PROXY_PASSWORD: ${PROXY_PASSWORD:-}
 
 services:
   # Firecrawl API + in-process workers (harness spawns worker/extract-worker).
+  # Custom entrypoint maps docker secrets (/run/secrets/*) to env vars, then
+  # execs the harness command.
   firecrawl-api:
     image: ${FIRECRAWL_IMAGE:-ghcr.io/firecrawl/firecrawl}:${FIRECRAWL_TAG:-2.11.202}
     profiles:
       - firecrawl
+    entrypoint: ["/bin/sh", "/firecrawl-entrypoint.sh"]
     command: node dist/src/harness.js --start-docker
     environment:
       <<: *common-env
@@ -58,10 +64,22 @@ services:
       NUQ_RABBITMQ_URL: amqp://firecrawl-rabbitmq:5672
       HARNESS_STARTUP_TIMEOUT_MS: ${HARNESS_STARTUP_TIMEOUT_MS:-60000}
       ENV: local
+    env_file:
+      # Optional provider settings (non-secret). Absent files are ignored.
+      - path: ./llm.env
+        required: false
+      - path: ./proxy.env
+        required: false
+    volumes:
+      - ./entrypoint.sh:/firecrawl-entrypoint.sh:ro
+    secrets:
+      - firecrawl-postgres-password
+      - firecrawl-openai-api-key
+      - firecrawl-proxy-password
     ports:
-      - 127.0.0.1:${HOST_PORT:-3002}:${INTERNAL_PORT:-3002} # consumed by AI agents (MCP/CLI/SDK)
+      - 127.0.0.1:${HOST_PORT:-31002}:${INTERNAL_PORT:-3002} # consumed by AI agents (MCP/CLI/SDK)
     networks:
-      - firecrawl # reach redis/rabbitmq/postgres/playwright
+      - firecrawl # reach redis/rabbitmq/postgres/playwright/searxng
       - default # shared mac-pro-composes net, so other stacks can reach firecrawl-api
     extra_hosts:
       - "host.docker.internal:host-gateway" # reach host services (e.g. local Ollama)
@@ -69,13 +87,17 @@ services:
       nofile:
         soft: 65535
         hard: 65535
-    cpus: ${FIRECRAWL_API_CPUS:-4.0}
-    mem_limit: ${FIRECRAWL_API_MEM:-8G}
-    memswap_limit: ${FIRECRAWL_API_MEM:-8G}
+    cpus: ${FIRECRAWL_API_CPUS:-2.0}
+    mem_limit: ${FIRECRAWL_API_MEM:-4G}
+    memswap_limit: ${FIRECRAWL_API_MEM:-4G}
     depends_on:
       firecrawl-redis:
         condition: service_started
       firecrawl-playwright:
+        condition: service_started
+      firecrawl-searxng:
+        condition: service_started
+      firecrawl-nuq-postgres:
         condition: service_started
       firecrawl-rabbitmq:
         condition: service_healthy
@@ -92,30 +114,54 @@ services:
     restart: ${RESTART:-unless-stopped}
     logging: *logging
 
-  # Headless-browser rendering microservice.
+  # Headless-browser rendering microservice (JS pages). Fetch is the fallback.
   firecrawl-playwright:
     image: ${PLAYWRIGHT_IMAGE:-ghcr.io/firecrawl/playwright-service}:${PLAYWRIGHT_TAG:-latest}
     profiles:
       - firecrawl
     environment:
       PORT: "3000"
-      MAX_CONCURRENT_PAGES: ${CRAWL_CONCURRENT_REQUESTS:-10}
-      PROXY_SERVER: ${PROXY_SERVER:-}
-      PROXY_USERNAME: ${PROXY_USERNAME:-}
-      PROXY_PASSWORD: ${PROXY_PASSWORD:-}
+      MAX_CONCURRENT_PAGES: ${CRAWL_CONCURRENT_REQUESTS:-3}
       BLOCK_MEDIA: ${BLOCK_MEDIA:-}
       ALLOW_LOCAL_WEBHOOKS: ${ALLOW_LOCAL_WEBHOOKS:-}
+    env_file:
+      # Non-secret proxy settings only (authenticated-proxy password is wired on
+      # the api via docker secret; see README).
+      - path: ./proxy.env
+        required: false
     networks:
       - firecrawl
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    cpus: ${PLAYWRIGHT_CPUS:-2.0}
-    mem_limit: ${PLAYWRIGHT_MEM:-4G}
-    memswap_limit: ${PLAYWRIGHT_MEM:-4G}
+    cpus: ${PLAYWRIGHT_CPUS:-1.0}
+    mem_limit: ${PLAYWRIGHT_MEM:-1G}
+    memswap_limit: ${PLAYWRIGHT_MEM:-1G}
     tmpfs:
-      - /tmp/.cache:noexec,nosuid,size=1g
+      - /tmp/.cache:noexec,nosuid,size=512m
+    restart: ${RESTART:-unless-stopped}
+    logging: *logging
+
+  # /search provider. Bundled so search works without an external service.
+  firecrawl-searxng:
+    image: ${SEARXNG_IMAGE:-searxng/searxng}:${SEARXNG_TAG:-latest}
+    profiles:
+      - firecrawl
+    environment:
+      SEARXNG_BASE_URL: http://firecrawl-searxng:8080/
+      UWSGI_WORKERS: ${SEARXNG_UWSGI_WORKERS:-2}
+      UWSGI_THREADS: ${SEARXNG_UWSGI_THREADS:-2}
+    volumes:
+      - ./searxng:/etc/searxng:rw # settings.yml enables the json API
+    networks:
+      - firecrawl
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
     restart: ${RESTART:-unless-stopped}
     logging: *logging
 
@@ -147,23 +193,36 @@ services:
     restart: ${RESTART:-unless-stopped}
     logging: *logging
 
-  # NuQ PostgreSQL queue backend (custom image bundling pg_cron).
+  # NuQ PostgreSQL queue backend (custom image bundling pg_cron + NuQ schema).
+  # Reads the password from the mounted secret via POSTGRES_PASSWORD_FILE.
   firecrawl-nuq-postgres:
     image: ${NUQ_POSTGRES_IMAGE:-ghcr.io/firecrawl/nuq-postgres}:${NUQ_POSTGRES_TAG:-latest}
     profiles:
       - firecrawl
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?postgres password required}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_PASSWORD_FILE: /run/secrets/firecrawl-postgres-password
+    secrets:
+      - firecrawl-postgres-password
     networks:
       - firecrawl
     restart: ${RESTART:-unless-stopped}
     logging: *logging
 
 networks:
-  # Private bridge (plain bridge, NOT internal: playwright/api need outbound
-  # internet to scrape). `default` is the shared external mac-pro-composes net
+  # Private bridge (plain bridge, NOT internal: playwright/api/searxng need
+  # outbound internet). `default` is the shared external mac-pro-composes net
   # declared in the root compose.
   firecrawl:
     driver: bridge
+
+secrets:
+  # Files under ${FIRECRAWL_SECRETS_BASE_DIR}. postgres-password is required;
+  # the optional provider secrets may be empty files (feature disabled).
+  firecrawl-postgres-password:
+    file: ${FIRECRAWL_SECRETS_BASE_DIR}/postgres-password
+  firecrawl-openai-api-key:
+    file: ${FIRECRAWL_SECRETS_BASE_DIR}/openai-api-key
+  firecrawl-proxy-password:
+    file: ${FIRECRAWL_SECRETS_BASE_DIR}/proxy-password
