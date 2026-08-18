@@ -98,7 +98,7 @@ formats need an OpenAI-compatible endpoint or Ollama:
 
 1. Uncomment the non-secret settings (base URL, model) in [`llm.env`](llm.env).
 2. Provide the key as an environment variable when starting the stack — it is
-   mounted as a docker secret, never written to a tracked file:
+   sourced from your shell, never written to a tracked file:
 
    ```shell
    OPENAI_API_KEY=sk-... docker compose --profile firecrawl up -d

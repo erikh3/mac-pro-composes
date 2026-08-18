@@ -1,19 +1,11 @@
 #!/bin/sh
-# Firecrawl api entrypoint: map docker secrets (mounted at /run/secrets) to the
-# environment variables Firecrawl expects, then exec the harness command.
+# Firecrawl api entrypoint: map the postgres docker secret (mounted at
+# /run/secrets) to the env var Firecrawl expects, then exec the harness command.
 # Same pattern as gluetun/entrypoint.sh in this project.
 #
-# Optional provider secrets (openai-api-key, proxy-password) may be empty files;
-# empty/missing secrets are skipped so LLM/proxy stay optional.
+# Optional provider values (OPENAI_API_KEY, PROXY_PASSWORD) arrive as plain env
+# vars sourced from the shell; empty/unset leaves LLM extraction / proxy off.
 set -e
-
-export_secret() {
-  _file="/run/secrets/$1"
-  _var="$2"
-  if [ -s "$_file" ]; then
-    export "$_var=$(cat "$_file")"
-  fi
-}
 
 if [ ! -s /run/secrets/firecrawl-postgres-password ]; then
   echo "[firecrawl-entrypoint] ERROR: postgres-password secret is missing or empty." >&2
@@ -21,8 +13,6 @@ if [ ! -s /run/secrets/firecrawl-postgres-password ]; then
   exit 1
 fi
 
-export_secret firecrawl-postgres-password POSTGRES_PASSWORD
-export_secret firecrawl-openai-api-key OPENAI_API_KEY
-export_secret firecrawl-proxy-password PROXY_PASSWORD
+export POSTGRES_PASSWORD="$(cat /run/secrets/firecrawl-postgres-password)"
 
 exec "$@"

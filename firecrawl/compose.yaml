@@ -64,6 +64,10 @@ services:
       NUQ_RABBITMQ_URL: amqp://firecrawl-rabbitmq:5672
       HARNESS_STARTUP_TIMEOUT_MS: ${HARNESS_STARTUP_TIMEOUT_MS:-60000}
       ENV: local
+      # Optional provider values, sourced from the shell (never committed).
+      # Unset -> empty -> Firecrawl leaves LLM extraction / proxy disabled.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      PROXY_PASSWORD: ${PROXY_PASSWORD:-}
     env_file:
       # Optional provider settings (non-secret). Absent files are ignored.
       - path: ./llm.env
@@ -74,8 +78,6 @@ services:
       - ./entrypoint.sh:/firecrawl-entrypoint.sh:ro
     secrets:
       - firecrawl-postgres-password
-      - firecrawl-openai-api-key
-      - firecrawl-proxy-password
     ports:
       - 127.0.0.1:${HOST_PORT:-31002}:${INTERNAL_PORT:-3002} # consumed by AI agents (MCP/CLI/SDK)
     networks:
@@ -221,11 +223,3 @@ secrets:
   # postgres-password is a required file under ${FIRECRAWL_SECRETS_BASE_DIR}.
   firecrawl-postgres-password:
     file: ${FIRECRAWL_SECRETS_BASE_DIR}/postgres-password
-  # Optional provider secrets are sourced from environment variables, so no
-  # files need to exist. Unset -> empty secret -> entrypoint skips it (feature
-  # off). To enable, export the var (e.g. `OPENAI_API_KEY=sk-... docker compose
-  # --profile firecrawl up -d`); the value is never written to a tracked file.
-  firecrawl-openai-api-key:
-    environment: OPENAI_API_KEY
-  firecrawl-proxy-password:
-    environment: PROXY_PASSWORD
