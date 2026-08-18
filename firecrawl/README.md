@@ -93,8 +93,8 @@ dummy API key, since auth is disabled).
 
 ## Optional: LLM extraction
 
-Core scrape/crawl/map/search need no model. `/extract` and LLM-structured
-formats need an OpenAI-compatible endpoint or Ollama:
+Core scrape/crawl/map/search need no model. LLM-structured extraction needs an
+OpenAI-compatible endpoint or Ollama:
 
 1. Uncomment the non-secret settings (base URL, model) in [`llm.env`](llm.env).
 2. Provide the key as an environment variable when starting the stack — it is
@@ -103,6 +103,19 @@ formats need an OpenAI-compatible endpoint or Ollama:
    ```shell
    OPENAI_API_KEY=sk-... docker compose --profile firecrawl up -d
    ```
+
+Then request structured output via a `json` format object on `/v2/scrape`:
+
+```shell
+curl --fail-with-body --silent -X POST http://localhost:31002/v2/scrape \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"https://example.com","formats":[{"type":"json",
+       "prompt":"Extract the page title","schema":{"type":"object",
+       "properties":{"title":{"type":"string"}}}}]}'
+```
+
+Without a key, the scrape still succeeds but `data.json` is `null` with a
+`warning`. Prefer this over the deprecated `/v2/extract` endpoint.
 
 Screenshots and page actions require Fire-engine (not included).
 
