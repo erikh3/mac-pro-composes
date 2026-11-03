@@ -38,7 +38,7 @@ services:
       traefik.http.routers.dashboard.rule: "Host(`traefik.localhost`)"
       traefik.http.routers.dashboard.entrypoints: "websecure"
       traefik.http.routers.dashboard.tls: "true"
-      traefik.http.routers.dashboard.service: "dashboard@internal"
+      traefik.http.routers.dashboard.service: "api@internal"
       traefik.http.routers.api.rule: "Host(`traefik.localhost`) && PathPrefix(`/api`)"
       traefik.http.routers.api.entrypoints: "websecure"
       traefik.http.routers.api.tls: "true"

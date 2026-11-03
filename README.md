@@ -48,6 +48,32 @@ Enable profiles explicitly:
 docker compose --profile webtop up -d
 ```
 
+## Start services one by one
+
+Create the shared network and configure secrets first. Start each service separately:
+
+```shell
+docker compose up -d --no-deps --wait --wait-timeout 180 dockerproxy
+docker compose up -d --no-deps --wait --wait-timeout 180 podmanproxy
+docker compose up -d --no-deps --wait --wait-timeout 180 step-ca
+docker compose up -d --no-deps --wait --wait-timeout 180 httpcat
+docker compose up -d --no-deps --wait --wait-timeout 180 traefik
+docker compose up -d --no-deps --wait --wait-timeout 180 homepage
+docker compose up -d --no-deps --wait --wait-timeout 180 it-tools
+docker compose up -d --no-deps --wait --wait-timeout 180 syncthing
+docker compose up -d --no-deps --wait --wait-timeout 180 firefox
+docker compose up -d --no-deps --wait --wait-timeout 180 obsidian
+```
+
+The Podman machine must be running before `podmanproxy`. Follow
+[the CA setup instructions](stepca/README.md) after starting `step-ca` and before
+starting Traefik or the desktop services. Start Syncthing before Obsidian.
+The named-service commands do not activate unrelated optional profiles.
+
+For services without a healthcheck, `--wait` confirms only that the container is running.
+Verify application responses separately. A new Obsidian installation opens its vault
+chooser. Its CLI must be enabled in Settings > General > Advanced before using CLI commands.
+
 ## Updating
 
 Pull new image. Check in `.env` for particular image name.

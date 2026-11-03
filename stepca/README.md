@@ -92,11 +92,11 @@ CONTAINER_ID=$(docker container ls -q --filter "label=one.dify.stepca=true" --fi
 docker exec -t $CONTAINER_ID bash -c "step ca certificate shared-localhost-stepca \
    --san localhost --san 127.0.0.1 \
    --san homepage.localhost \
-   --san firefox.localhost --san 127.0.0.1:3104 \
-   --san obsidian.localhost --san 127.0.0.1:3101 \
+   --san firefox.localhost \
+   --san obsidian.localhost \
    --san syncthing.localhost \
-   --san it-tools.localhost \
-   --not-after 40000h \
+   --san it-tools.localhost --san traefik.localhost --san step-ca.localhost \
+   --not-after 8000h \
    $MOUNT_BASE_PATH/localhost.crt \
    $MOUNT_BASE_PATH/localhost.key \
    --provisioner default-jwk \
@@ -106,9 +106,49 @@ docker exec -t $CONTAINER_ID bash -c "step ca certificate shared-localhost-stepc
 
 - https://smallstep.com/docs/step-cli/reference/ca/certificate/index.html
 
-Note: The `localhost:3104` does not work.
+SANs contain hostnames or IP addresses, never ports. Use `8000h` for server certificates.
+The previous `40000h` certificate failed native macOS SSL validation; `8000h` passed.
 
 7. Install certs to apps
 
-Go into individual applications & copy the `service-certs/localhost.crt` & `service-certs/localhost.key`
-to `config/ssl/cert.key` & `config/ssl/cert.key`.
+Install `service-certs/localhost.crt` as `config/ssl/cert.pem` and
+`service-certs/localhost.key` as `config/ssl/cert.key` in Obsidian.
+Firefox uses a named volume, so copy directly into its running container:
+
+```shell
+docker compose cp stepca/service-certs/localhost.crt firefox:/config/ssl/cert.pem
+docker compose cp stepca/service-certs/localhost.key firefox:/config/ssl/cert.key
+docker compose restart --no-deps firefox
+```
+
+Run those commands from the repository root. The distribution script still targets
+the old Firefox host-mounted configuration and does not populate its named volume.
+
+Traefik expects `traefik/traefik/service-certs/localhost.pem` and `localhost.key`.
+Copy the server certificate there as `localhost.pem`. If this directory is a symlink
+to `stepca/service-certs`, only the `.crt` to `.pem` copy is needed.
+Copy `step/certs/root_ca.crt` into `traefik/traefik/ca-certs` for client authentication.
+Restart Traefik after changing its certificates or client trust roots.
+
+## macOS user trust
+
+If `step ca bootstrap --install` cannot use sudo, install the root in the login keychain:
+
+```shell
+security add-trusted-cert -r trustRoot -k "$HOME/Library/Keychains/login.keychain-db" stepca/step/certs/root_ca.crt
+```
+
+This trusts the CA for the current user, not system-wide.
+
+## Client certificate authentication
+
+Homepage, IT Tools, Syncthing, Firefox, and Obsidian routes require a client certificate
+signed by the CA in `traefik/traefik/ca-certs`. Keep client private keys outside
+`stepca/service-certs`, which is mounted into Traefik.
+
+For the local setup, the client certificate, key, and encrypted browser-import bundle
+are stored in `~/.config/custom/mac-pro-composes/client`. The bundle is `client.p12`;
+its password is in `bundle-password`. The client identity is imported into the macOS
+login keychain for Chrome. Firefox can import the bundle through its certificate settings.
+New server and client certificates use `8000h` validity.
+
