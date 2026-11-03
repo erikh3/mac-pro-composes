@@ -23,6 +23,9 @@ curl --cacert /home/step/certs/root_ca.crt  https://localhost:9000/health
 
 - https://doc.traefik.io/traefik/getting-started/configuration-overview/#the-static-configuration
 
+The dashboard router uses `api@internal`, which serves both `/dashboard/` and `/api`.
+`dashboard@internal` does not serve the dashboard page.
+
 ## Env. vars:
 
 - https://doc.traefik.io/traefik/reference/static-configuration/env/
